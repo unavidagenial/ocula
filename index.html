@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
     
-    <!-- Librerías de Ajedrez (Chessboard.js para gráficos, Chess.js para reglas) -->
+    <!-- Librerías de Ajedrez -->
     <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css" integrity="sha384-q94+BZtLrkL1/ohOuzBkq24XF86dMdtsb9aPw8e98h+1z0vwe1v3A/L3uGI/D04P" crossorigin="anonymous">
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js" integrity="sha384-8Vi8VHwn3vjQ9eUHUxex3Jv/q/T3TY/fFmO534Zk96K20LqK36U14A8S+k9U0r8+" crossorigin="anonymous"></script>
@@ -26,7 +26,7 @@
         .highlight-square { background-color: rgba(255, 235, 59, 0.7) !important; outline: 3px solid #ffeb3b; }
         .hovered-square { background-color: rgba(0, 188, 212, 0.5) !important; }
 
-        /* Elementos de MediaPipe */
+        /* Elementos de MediaPipe (Idéntico a la Ferretería funcional) */
         #gaze-cursor {
             position: fixed; width: 35px; height: 35px; border-radius: 50%;
             background: rgba(239, 68, 68, 0.85); border: 4px solid #ffffff;
@@ -69,68 +69,54 @@
     // ==========================================
     let board = null;
     let game = new Chess();
-    let casillaOrigen = null; // Guarda la casilla de la pieza que seleccionamos primero
+    let casillaOrigen = null; 
     
-    // Configuración visual del tablero
     let config = {
         pieceTheme: 'https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/img/chesspieces/wikipedia/{piece}.png',
         position: 'start'
     };
     board = Chessboard('board', config);
 
-    // Función para manejar el clic/parpadeo en una casilla
     function hacerClicCasilla(casillaDestinoID) {
         if (!casillaDestinoID) return;
 
-        // Limpiar colores anteriores
         $('.square-55d63').removeClass('highlight-square');
 
-        // Si NO hay pieza seleccionada aún (Estamos en el Paso 1: Agarrar)
         if (casillaOrigen === null) {
-            // Verificar si la casilla que cliqueamos tiene una pieza blanca
             let pieza = game.get(casillaDestinoID);
-            if (pieza && pieza.color === 'w') { // 'w' = white
+            if (pieza && pieza.color === 'w') { 
                 casillaOrigen = casillaDestinoID;
-                // Resaltar la casilla de origen en amarillo
                 $('.square-' + casillaDestinoID).addClass('highlight-square');
-                console.log("Seleccionada: " + casillaOrigen);
             }
-        } 
-        // Si YA teníamos una pieza seleccionada (Estamos en el Paso 2: Soltar)
-        else {
-            // Intentar hacer el movimiento (Chess.js valida si es legal según las reglas)
+        } else {
             let movimiento = game.move({
                 from: casillaOrigen,
                 to: casillaDestinoID,
-                promotion: 'q' // Siempre promocionar a reina si llega al final
+                promotion: 'q' 
             });
 
-            // Si el movimiento es inválido (ej: un peón saltando 3 casillas)
             if (movimiento === null) {
-                casillaOrigen = null; // Cancelar selección
+                casillaOrigen = null; 
                 return;
             }
 
-            // Si el movimiento es válido, actualizar el tablero visualmente
             board.position(game.fen());
-            casillaOrigen = null; // Reiniciar para el siguiente turno
+            casillaOrigen = null; 
 
-            // Hacer que la IA mueva las piezas negras
             window.setTimeout(movimientoIA, 500);
         }
     }
 
-    // Una IA muy básica: Mueve cualquier pieza negra al azar
     function movimientoIA() {
         let movimientosPosibles = game.moves();
-        if (movimientosPosibles.length === 0) return; // Jaque Mate o Tablas
+        if (movimientosPosibles.length === 0) return; 
         let movimientoAleatorio = Math.floor(Math.random() * movimientosPosibles.length);
         game.move(movimientosPosibles[movimientoAleatorio]);
         board.position(game.fen());
     }
 
     // ==========================================
-    // 2. LÓGICA DE MEDIAPIPE (Rastreo y Parpadeo)
+    // 2. MEDIAPIPE (SEGUIMIENTO Y PARPADEO) - IGUAL A LA FERRETERÍA
     // ==========================================
     const gazeCursor = document.getElementById('gaze-cursor');
     const videoElement = document.getElementById('camera-preview');
@@ -139,7 +125,7 @@
     const SENSIBILIDAD_X = 5.2, SENSIBILIDAD_Y = 4.8, FACTOR_SUAVIZADO = 0.22;
     let cursorX = window.innerWidth / 2, cursorY = window.innerHeight / 2;
     let lastBlinkTime = 0;
-    let hoveredSquare = null; // La casilla del tablero sobre la que está la nariz
+    let hoveredSquare = null; 
 
     function calcularDistancia(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y); }
     function calcularEAR(lm, outer, inner, top, bottom) { return calcularDistancia(lm[top], lm[bottom]) / calcularDistancia(lm[outer], lm[inner]); }
@@ -155,42 +141,37 @@
             const lm = results.multiFaceLandmarks[0];
             const nariz = lm[1];
 
-            // MOVER CURSOR
             const targetX = (window.innerWidth / 2) + ((1 - nariz.x) - 0.5) * SENSIBILIDAD_X * window.innerWidth;
             const targetY = (window.innerHeight / 2) + (nariz.y - 0.5) * SENSIBILIDAD_Y * window.innerHeight;
 
             cursorX += (targetX - cursorX) * FACTOR_SUAVIZADO;
             cursorY += (targetY - cursorY) * FACTOR_SUAVIZADO;
+            
             const finalX = Math.max(0, Math.min(window.innerWidth, cursorX));
             const finalY = Math.max(0, Math.min(window.innerHeight, cursorY));
 
             gazeCursor.style.left = `${finalX}px`; gazeCursor.style.top = `${finalY}px`;
             gazeCursor.style.display = 'block';
 
-            // IDENTIFICAR CASILLA DEL AJEDREZ DEBAJO DE LA NARIZ
             const element = document.elementFromPoint(finalX, finalY);
             
-            // Limpiar efecto hover anterior
             if (hoveredSquare) hoveredSquare.classList.remove('hovered-square');
             hoveredSquare = null;
             let currentSquareID = null;
 
             if (element) {
-                // Buscamos si estamos apuntando a una celda del tablero o a una pieza dentro de la celda
                 const celdaTablero = element.closest('.square-55d63');
                 if (celdaTablero) {
                     hoveredSquare = celdaTablero;
                     celdaTablero.classList.add('hovered-square');
-                    currentSquareID = celdaTablero.getAttribute('data-square'); // Ej: "e2", "d4"
+                    currentSquareID = celdaTablero.getAttribute('data-square'); 
                 }
             }
 
-            // DETECTAR PARPADEO
             const ear = (calcularEAR(lm, 33, 133, 159, 145) + calcularEAR(lm, 362, 263, 386, 374)) / 2;
             if (ear < 0.22 && (Date.now() - lastBlinkTime > 1500)) {
                 lastBlinkTime = Date.now();
                 
-                // Efecto visual de clic (parpadeo del cursor)
                 gazeCursor.style.backgroundColor = '#ffc107';
                 gazeCursor.style.transform = 'translate(-50%, -50%) scale(1.5)';
                 setTimeout(() => {
@@ -198,7 +179,6 @@
                     gazeCursor.style.transform = 'translate(-50%, -50%) scale(1)';
                 }, 300);
 
-                // EJECUTAR LA LÓGICA DEL AJEDREZ (Seleccionar/Mover)
                 if (currentSquareID) {
                     hacerClicCasilla(currentSquareID);
                 }
@@ -209,13 +189,16 @@
         }
     });
 
+    // INICIO DE CÁMARA IDÉNTICO AL FUNCIONAL
     async function startCamera() {
         try {
-            // Requiere Servidor Local (Live Server) para que la cámara funcione por seguridad del navegador
             const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false });
             videoElement.srcObject = stream; await videoElement.play();
             new Camera(videoElement, { onFrame: async () => { await faceMesh.send({ image: videoElement }); }, width: 640, height: 480 }).start();
-        } catch (err) { statusEl.textContent = 'Cámara bloqueada (Usa Live Server)'; statusEl.style.background = '#dc3545'; }
+        } catch (err) { 
+            statusEl.textContent = 'Cámara bloqueada'; 
+            statusEl.style.background = '#dc3545'; 
+        }
     }
     window.addEventListener('DOMContentLoaded', startCamera);
 </script>
