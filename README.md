@@ -1,3 +1,96 @@
+OCULA — Cursor Controlado por la Mirada (Versión en Español)
+Un dispositivo de entrada asistivo libre, de código abierto y basado en navegador web. Permite mover el cursor con la mirada y activar acciones mediante fijación (dwell-to-click). Sin hardware especializado ni instalaciones complejas: solo con una cámara web estándar.
+
+Licencia: MIT | MediaPipe Face Mesh | Accesibilidad | Open Source
+|---|---|
+🚀 Demo en Vivo
+El proyecto se encuentra desplegado y funcional en:
+https://oculaesp.netlify.app/
+📌 ¿Qué es OCULA?
+OCULA es una solución de tecnología asistiva de código abierto construida en un único archivo web. Utiliza la cámara web integrada de una notebook o PC junto con MediaPipe Face Mesh para estimar la dirección de la mirada, suavizar la señal mediante filtros matemáticos y permitir "hacer clic" fijando la vista sobre un objetivo durante una fracción de segundo.
+
+Esta versión adaptada al español incorpora un tablero CAA (Comunicación Aumentativa y Alternativa) de 6 tarjetas esenciales con síntesis de voz automática (Text-to-Speech) en español y pictogramas visuales integrados.
+💡 ¿Por qué existe este proyecto?
+Los sistemas comerciales de seguimiento ocular dedicados (como Tobii) tienen costos que oscilan entre USD 200 y más de USD 3.000, además de requerir controladores propietarios, adaptadores y software exclusivo para determinados sistemas operativos. Muchas personas que podrían beneficiarse directamente del control visual —pacientes con ELA (esclerosis lateral amiotrófica), personas con lesiones por esfuerzo repetitivo (RSI), parálisis cerebral en etapas avanzadas o lesiones temporales en extremidades superiores— quedan frecuentemente excluidas por barreras económicas.
+
+OCULA es un proyecto abierto de investigación y educación que demuestra que una solución asistiva gratuita, sin instalación y que funcione directamente desde una pestaña del navegador web es viable en hardware accesible.
+✨ Características Principales
+Estimación de mirada solo con cámara web: no requiere infrarrojos (IR) ni cámaras especiales.
+Tablero CAA en Español: 6 tarjetas de necesidades básicas con pronunciación automática vía Web Speech API (speechSynthesis).
+Fijación de mirada (Dwell-to-click): activación automática tras sostener la vista en un objetivo (con anillo de progreso visual).
+Calibración en pantalla: sistema de calibración afín de 5 puntos para alinear la mirada a la pantalla.
+Suavizado exponencial: filtro paso bajo en las coordenadas de pantalla para mantener la estabilidad del cursor visual.
+Aviso de pérdida de rostro: detección y alerta cuando el usuario se desplaza fuera del cuadro de la cámara.
+Recalibración dinámica: opción para recalibrar en cualquier momento sin recargar la página.
+100% del lado del cliente: ningún fotograma, coordenada ni dato biométrico sale del navegador.
+📋 Pictogramas y Mensajes del Tablero CAA
+Tarjeta
+Mensaje Vocalizado
+Propósito del Mensaje
+1
+Necesito ayuda
+Alerta rápida para requerir asistencia inmediata.
+2
+Tengo sed
+Solicitud de hidratación y agua.
+3
+Estoy feliz
+Comunicación de estado de ánimo positivo y bienestar.
+4
+Necesito descansar
+Indicación de fatiga o solicitud de reposo.
+5
+Quiero a mi familia
+Expresión afectiva y llamada a los cuidadores o familiares.
+6
+Tengo hambre
+Solicitud directa de alimentación.
+
+⚙️ ¿Cómo funciona internamente?
+Captura de video: Adquisición continua del flujo visual vía MediaPipe Camera Utils.
+Malla facial e iris: Detección y extracción de malla mediante MediaPipe Face Mesh (468 puntos faciales más puntos clave de iris 468 y 473).
+Vector de mirada: Cálculo del vector relativo de cada iris respecto al contorno de la cuenca ocular.
+Transformación afín: Mapeo calibrado de 5 puntos hacia las coordenadas absolutas $(x, y)$ de la pantalla.
+Filtrado paso bajo: Suavizado exponencial para amortiguar el temblor involuntario y micro-sacadas oculares.
+Temporizador Dwell: Al posar el cursor sobre un elemento interactivo durante el umbral fijado, se dispara el evento y se emite la voz en español.
+🖥️ Requisitos y Recomendaciones de Uso
+Distancia recomendada: Ubicarse entre 50 y 70 cm de la cámara web.
+Estabilidad postural: Mantener la cabeza razonablemente quieta; desplazamientos excesivos del torso o cuello desfasan la estimación angular.
+Iluminación: Luz frontal homogénea sobre el rostro. Evitar contraluces severos y ventanas detrás del usuario.
+Dispositivos óptimos: PC de escritorio o notebook con pantalla fija. En tablets se aconseja soporte rígido en orientación horizontal. No se recomienda sostener teléfonos a mano alzada.
+Navegadores compatibles: Chrome 120+, Edge 120+, Safari 17+, Firefox 121+ (cualquier entorno con soporte WebAssembly SIMD y API getUserMedia).
+⚠️ Limitaciones Conocidas (Aviso Honesto)
+No es un dispositivo médico: Se trata de un prototipo experimental, educativo y de investigación abierta.
+Compensación de postura cefálica: No compensa actualmente rotaciones pronunciadas de la cabeza sin una recalibración posterior.
+Resolución angular: Precisión típica de 3 a 5 grados de ángulo visual. Excelente para botones grandes (como el tablero de 6 tarjetas), pero no apto para lectura de texto fino ni teclados virtuales compactos.
+Factores ópticos y ambientales: Reflejos en cristales de anteojos, penumbra o lentes gran angular tipo ojo de pez pueden degradar el seguimiento.
+📥 Puesta en Marcha Local
+Para clonar y desplegar el proyecto en tu entorno local:
+
+Clonar el repositorio:
+
+git clone <URL_DEL_REPOSITORIO>
+
+Acceder a la carpeta del proyecto:
+
+cd ocula
+
+Iniciar un servidor HTTP local (requerido para habilitar permisos de cámara sin restricciones de seguridad de origen cruzado):
+
+python3 -m http.server 8080
+
+Abrir en el navegador web:
+
+http://localhost:8080
+
+Conceder permisos a la cámara web y realizar un clic inicial en cualquier parte de la ventana para desbloquear la API de síntesis de voz (AudioContext/SpeechSynthesis).
+🔒 Privacidad y Seguridad
+Todo el procesamiento de visión artificial, detección de iris y cálculo de mirada corre estrictamente en la memoria volátil local de tu navegador. Ningún fotograma de video, imagen ni dato biométrico se almacena ni se transmite a servidores externos.
+📄 Licencia
+Publicado bajo la Licencia MIT. Libre para uso personal, educativo, clínico y comercial.
+
+
+
 # OCULA — Eye-Controlled Cursor
 
 > A free, browser-based assistive input device.
