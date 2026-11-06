@@ -1,228 +1,358 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ajedrez Accesible (Control Facial)</title>
-
-    <!-- Usamos SOLO jsdelivr (Servidor comprobado que no bloquea tu netbook) -->
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
-    
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
-
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #2c3e50; color: white; margin: 0; padding: 20px; text-align: center; }
-        
-        #board { width: 500px; margin: 20px auto; border: 4px solid #34495e; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: none; }
-        
-        .instrucciones { max-width: 600px; margin: auto; background: #34495e; padding: 15px; border-radius: 8px; font-size: 18px; margin-bottom: 20px; }
-        
-        /* Botón de inicio para evadir bloqueo de Chrome */
-        #btn-iniciar { background-color: #28a745; color: white; border: none; padding: 15px 30px; font-size: 22px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.3); transition: 0.3s; margin-bottom: 20px; }
-        #btn-iniciar:hover { background-color: #218838; transform: scale(1.05); }
-
-        .highlight-square { background-color: rgba(255, 235, 59, 0.7) !important; outline: 3px solid #ffeb3b; }
-        .hovered-square { background-color: rgba(0, 188, 212, 0.5) !important; }
-
-        #gaze-cursor {
-            position: fixed; width: 35px; height: 35px; border-radius: 50%;
-            background: rgba(239, 68, 68, 0.85); border: 4px solid #ffffff;
-            pointer-events: none; transform: translate(-50%, -50%);
-            z-index: 9999; box-shadow: 0 0 12px rgba(0, 0, 0, 0.5); display: none;
-            transition: background-color 0.2s, transform 0.1s;
-        }
-        #camera-preview {
-            position: fixed; top: 12px; right: 12px; width: 130px; height: 90px;
-            border-radius: 8px; border: 2px solid #3498db; object-fit: cover;
-            transform: scaleX(-1); z-index: 1000; background: #000;
-        }
-        #cam-status {
-            position: fixed; top: 110px; right: 12px; background: #333; color: #fff;
-            padding: 8px 12px; border-radius: 4px; font-size: 14px; font-weight: bold; z-index: 1000;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tablero CAA - La Caperucita Roja</title>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;font-family:system-ui,Arial,sans-serif;background:#0f172a;color:#f8fafc}
+body{min-height:100dvh;display:flex;flex-direction:column;overflow-x:hidden}
+header{padding:12px;background:#1e293b;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:center;text-align:center}
+h1{font-size:clamp(1rem,3vw,1.35rem);margin:0;color:#38bdf8}
+#status{font-size:.85rem;background:#334155;padding:7px 12px;border-radius:30px;font-weight:700}
+#status.active{background:#28a745;color:#ffffff}
+.toolbar{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;padding:10px}
+button{font:inherit;cursor:pointer;border:0;border-radius:10px;padding:10px 16px;font-weight:700}
+#start-camera{background:#0284c7;color:white}
+#stop-camera{background:#475569;color:white}
+button:disabled{opacity:.5;cursor:not-allowed}
+#instruction{font-size:.9rem;color:#cbd5e1;text-align:center;padding:0 12px 8px}
+#last-spoken{min-height:30px;text-align:center;color:#fde68a;font-weight:700;padding:4px 12px}
+.grid-board{flex:1;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;padding:10px;width:100%;max-width:1200px;margin:0 auto;align-content:start}
+.card{min-width:0;min-height:135px;background:white;color:#0f172a;border:5px solid #cbd5e1;border-radius:16px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:8px;position:relative;overflow:hidden;cursor:pointer;box-shadow:0 3px 10px #0004;transition:border-color .12s,transform .12s,background-color .12s}
+.card img{max-width:85%;width:50%;height:90px;object-fit:contain}
+.card svg{width:40%;height:85px}
+.card-label{font-size:clamp(.75rem,1.6vw,1rem);font-weight:800;text-align:center;text-transform:uppercase;overflow-wrap:anywhere}
+.card.hovered{background-color:#ffeeba !important;border-color:#f59e0b;outline:4px solid #ffc107;transform:scale(1.02)}
+.card.selected{border-color:#16a34a;background-color:#dcfce7 !important;transform:scale(0.97)}
+.dwell-progress{position:absolute;bottom:0;left:0;height:7px;width:0;background:#0284c7}
+#camera-preview{position:fixed;right:12px;bottom:12px;width:130px;height:90px;object-fit:cover;transform:scaleX(-1);border:2px solid #007bff;border-radius:8px;background:#000;z-index:1000}
+#gaze-cursor{position:fixed;width:32px;height:32px;border:4px solid white;border-radius:50%;background:rgba(239,68,68,0.85);box-shadow:0 0 12px rgba(0,0,0,0.5);pointer-events:none;transform:translate(-50%,-50%);z-index:9999;display:none;transition:background-color 0.2s,transform 0.1s}
+@media(max-width:700px){.grid-board{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:7px}.card{min-height:112px;padding:5px;border-width:3px}.card img{height:65px}.card svg{height:65px}#camera-preview{width:95px;height:70px}}
+@media(max-width:390px){.grid-board{grid-template-columns:repeat(2,minmax(0,1fr))}}
+</style>
 </head>
 <body>
+<header><h1>La Caperucita Roja — Tablero de Comunicación</h1><div id="status">Iniciando cámara...</div></header>
+<div class="toolbar"><button id="start-camera">Reintentar cámara</button><button id="stop-camera">Detener cámara</button></div>
+<div id="instruction">Mové la nariz para apuntar a una tarjeta. Cuando esté resaltada en amarillo, parpadeá para seleccionarla y escuchar la frase.</div>
+<div id="last-spoken" aria-live="polite">Esperando selección…</div>
 
-    <h1>♟️ Ajedrez Facial Accesible</h1>
-    
-    <div class="instrucciones">
-        <strong>¿Cómo jugar?</strong><br>
-        1. Mueve la cabeza para apuntar el punto rojo a una de tus piezas (Blancas).<br>
-        2. <strong>Parpadea</strong> para seleccionarla (se pondrá amarilla).<br>
-        3. Apunta a la casilla donde quieres moverla y vuelve a <strong>parpadear</strong>.
-        4. Una vez finalizado el juego se debe actualizar la página.
+<main class="grid-board" id="aac-grid">
+    <!-- 1: Personajes -->
+    <div class="card" data-phrase="Caperucita roja">
+      <img src="https://i.pinimg.com/originals/15/3b/ef/153bef0e68858821313046d939879898.png" alt="caperucita roja">
+      <div class="card-label">Caperucita roja</div>
+      <div class="dwell-progress"></div>
     </div>
 
-    <button id="btn-iniciar" onclick="iniciarTodo()">▶️ Empezar Juego y Cámara</button>
+    <div class="card" data-phrase="Lobo feroz">
+      <img src="https://thumbs.dreamstime.com/b/lobo-del-caperucita-rojo-133290514.jpg?w=576" alt="Lobo feroz">
+      <div class="card-label">Lobo feroz</div>
+      <div class="dwell-progress"></div>
+    </div>
 
-    <div id="cam-status" style="display:none;">Esperando cámara...</div>
-    <div id="gaze-cursor"></div>
-    <video id="camera-preview" autoplay playsinline muted style="display:none;"></video>
+    <div class="card" data-phrase="Abuelita">
+      <img src="https://i.pinimg.com/736x/ec/d4/15/ecd41592c82c876acde4a13f1cdd9529.jpg" alt="Abuelita">
+      <div class="card-label">Abuelita</div>
+      <div class="dwell-progress"></div>
+    </div>
 
-    <div id="board"></div>
+    <div class="card" data-phrase="Cazador">
+      <img src="https://th.bing.com/th/id/R.a242839f13b8c4c933dacdc6c93a27d0?rik=mQqfArX3UB4zqQ&riu=http%3a%2f%2frosatubes.r.o.pic.centerblog.net%2f9ffb9949.png&ehk=IuVpWW%2fle2W41u3LcigfQYlHmPLRkaSPseEcpk4hKBY%3d&risl=&pid=ImgRaw&r=0" alt="Cazador" style="width: 80%;">
+      <div class="card-label">Cazador</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <!-- 2: Tengo sed -->
+    <div class="card" data-phrase="Tengo sed, por favor dame agua">
+      <svg viewBox="0 0 100 100" stroke="#0284c7" stroke-width="4" fill="none" stroke-linejoin="round">
+        <path d="M28 20 L72 20 L62 85 A 4 4 0 0 1 58 89 L42 89 A 4 4 0 0 1 38 85 Z" fill="#e0f2fe"></path>
+        <path d="M33 45 Q 50 40 67 45" stroke="#38bdf8" stroke-width="3" fill="none"></path>
+      </svg>
+      <div class="card-label">Tengo sed</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <!-- 3: Necesito descansar -->
+    <div class="card" data-phrase="Necesito descansar">
+      <svg viewBox="0 0 100 100" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round">
+        <rect x="15" y="55" width="70" height="25" rx="4" fill="#cbd5e1"></rect>
+        <circle cx="35" cy="45" r="10" fill="#fed7aa" stroke="#ea580c"></circle>
+        <path d="M25 55 L75 55 L75 75 L25 75 Z" fill="#93c5fd"></path>
+        <path d="M45 42 Q 60 30 75 42" stroke="#64748b" stroke-dasharray="2 3"></path>
+      </svg>
+      <div class="card-label">Necesito descansar</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <!-- 4: Quiero a mi familia -->
+    <div class="card" data-phrase="Quiero a mi familia">
+      <svg viewBox="0 0 100 100" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round">
+        <circle cx="32" cy="30" r="8" fill="#fed7aa"></circle>
+        <path d="M22 65 L22 45 C 22 40 42 40 42 45 L42 65" fill="#86efac"></path>
+        <circle cx="68" cy="32" r="8" fill="#fed7aa"></circle>
+        <path d="M58 65 L58 47 C 58 42 78 42 78 47 L78 65" fill="#f472b6"></path>
+        <circle cx="50" cy="54" r="6" fill="#fed7aa"></circle>
+        <path d="M44 80 L44 66 C 44 62 56 62 56 66 L56 80" fill="#fde047"></path>
+      </svg>
+      <div class="card-label">Quiero a mi familia</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <!-- 5: Tengo hambre -->
+    <div class="card" data-phrase="Tengo hambre, quiero comer">
+      <svg viewBox="0 0 100 100" fill="none" stroke="#ea580c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="48" cy="30" r="10" fill="#fed7aa"></circle>
+        <path d="M48 42 L48 78" stroke-width="4"></path>
+        <path d="M48 50 L68 50 L68 44" stroke-width="3"></path>
+        <circle cx="70" cy="42" r="3" fill="#ea580c"></circle>
+        <path d="M40 90 L48 78 L56 90" stroke-width="4"></path>
+      </svg>
+      <div class="card-label">Tengo hambre</div>
+      <div class="dwell-progress"></div>
+    </div>
+   
+    <!-- 6: Enojado -->
+    <div class="card" data-phrase="Estoy enojado">
+      <img src="https://i.pinimg.com/1200x/f0/6d/94/f06d947e51f04483e0a6aa2f4f8832d6.jpg" alt="Enojo">
+      <div class="card-label">Enojado</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <!-- 7: Estoy feliz -->
+    <div class="card" data-phrase="Estoy feliz">
+      <img src="https://i.pinimg.com/736x/3d/d6/ee/3dd6ee19c54365815e73cec6aa777249.jpg" alt="Alegria">
+      <div class="card-label">Feliz</div>
+      <div class="dwell-progress"></div>
+    </div>
+   
+    <!-- 8: Triste -->
+    <div class="card" data-phrase="Estoy triste">
+      <img src="https://i.pinimg.com/736x/93/c4/56/93c456d0300ecda60e7d26f2aa37fd71.jpg" alt="Tristeza">
+      <div class="card-label">Triste</div>
+      <div class="dwell-progress"></div>
+    </div>
+   
+    <!-- 9: Sorprendido -->
+    <div class="card" data-phrase="Estoy sorprendido">
+      <img src="https://i.pinimg.com/736x/51/33/72/5133729454de21f671a9b7fa9b6633be.jpg" alt="Sorprendido">
+      <div class="card-label">Sorprendido</div>
+      <div class="dwell-progress"></div>
+    </div>
+   
+    <!-- 10: Miedo -->
+    <div class="card" data-phrase="Tengo miedo">
+      <img src="https://i.pinimg.com/736x/1b/da/40/1bda4046873a6d34b35ad36ab51b9152.jpg" alt="Tengo miedo">
+      <div class="card-label">Miedo</div>
+      <div class="dwell-progress"></div>
+    </div>
+   
+    <!-- 11: Si -->
+    <div class="card" data-phrase="Sí">
+      <img src="https://thumbs.dreamstime.com/b/icono-de-marca-verificaci%C3%B3n-blanca-en-bot%C3%B3n-verde-con-marco-blanco-475662500.jpg?w=768" alt="Sí">
+      <div class="card-label">Sí</div>
+      <div class="dwell-progress"></div>
+    </div>
+   
+    <!-- 12: No -->
+    <div class="card" data-phrase="No">
+      <img src="https://thumbs.dreamstime.com/b/icono-del-error-cr%C3%ADtico-8363117.jpg?w=768" alt="No">
+      <div class="card-label">No</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <!-- Escenas del cuento -->
+    <div class="card" data-phrase="Caperucita Roja llevaba una cesta con comida a casa de su abuela.">
+      <img src="https://i.pinimg.com/736x/5e/42/54/5e4254ab05f0fc56e7f82e49b6e1bed7.jpg" alt="Escena 1" style="width: 85%;">
+      <div class="card-label">Lleva la cesta</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <div class="card" data-phrase="El lobo esperaba a Caperucita disfrazado de abuelita.">
+      <img src="https://i.pinimg.com/736x/91/53/43/9153430e2762d4c053ce27c2389764d7.jpg" alt="Escena 2" style="width: 85%;">
+      <div class="card-label">Lobo disfrazado</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <div class="card" data-phrase="El cazador salva a Caperucita y a la abuelita.">
+      <img src="https://i.pinimg.com/736x/17/e0/77/17e077cc68a4a92e69aa3a4c9e834d0a.jpg" alt="Escena 3" style="width: 85%;">
+      <div class="card-label">El cazador salva</div>
+      <div class="dwell-progress"></div>
+    </div>
+</main>
+
+<div id="gaze-cursor"></div>
+<video id="camera-preview" autoplay playsinline muted></video>
 
 <script>
-    let board = null;
-    let game = null;
-    let casillaOrigen = null; 
+const statusEl = document.getElementById('status');
+const videoElement = document.getElementById('camera-preview');
+const gazeCursor = document.getElementById('gaze-cursor');
+const cards = [...document.querySelectorAll('.card')];
+const startBtn = document.getElementById('start-camera');
+const stopBtn = document.getElementById('stop-camera');
+const lastSpoken = document.getElementById('last-spoken');
 
-    // Función unificada que arranca al hacer clic en el botón
-    function iniciarTodo() {
-        document.getElementById('btn-iniciar').style.display = 'none';
-        document.getElementById('board').style.display = 'block';
-        document.getElementById('camera-preview').style.display = 'block';
-        document.getElementById('cam-status').style.display = 'block';
-        
-        iniciarAjedrez();
-        startCamera();
+// ==========================================
+// 1. VOZ Y SELECCIÓN DE TARJETAS
+// ==========================================
+function speak(text) {
+  if (!text) return;
+  lastSpoken.textContent = 'Seleccionado: ' + text;
+  if (!('speechSynthesis' in window)) return;
+  window.speechSynthesis.cancel();
+  const utterance = new SpeechSynthesisUtterance(text);
+  utterance.lang = 'es-AR';
+  utterance.rate = 0.95;
+  window.speechSynthesis.speak(utterance);
+}
+
+function selectCard(card) {
+  if (!card) return;
+  speak(card.dataset.phrase);
+  card.classList.add('selected');
+  setTimeout(() => card.classList.remove('selected'), 450);
+}
+
+cards.forEach(card => card.addEventListener('click', () => selectCard(card)));
+
+// ==========================================
+// 2. MOTOR MEDIAPIPE FLUIDO (NARIZ Y PARPADEO)
+// ==========================================
+const SENSIBILIDAD_X = 5.2, SENSIBILIDAD_Y = 4.8, FACTOR_SUAVIZADO = 0.22;
+let cursorX = window.innerWidth / 2, cursorY = window.innerHeight / 2;
+let lastBlinkTime = 0, hoveredCard = null;
+let cameraInstance = null, activeStream = null;
+
+function calcularDistancia(p1, p2) {
+  return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+}
+
+function calcularEAR(lm, outer, inner, top, bottom) {
+  return calcularDistancia(lm[top], lm[bottom]) / calcularDistancia(lm[outer], lm[inner]);
+}
+
+const faceMesh = new FaceMesh({
+  locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}`
+});
+
+faceMesh.setOptions({
+  maxNumFaces: 1,
+  refineLandmarks: true,
+  minDetectionConfidence: 0.5,
+  minTrackingConfidence: 0.5
+});
+
+faceMesh.onResults((results) => {
+  if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+    statusEl.textContent = 'Rastreo OK (Parpadeá para elegir)';
+    statusEl.classList.add('active');
+    statusEl.style.background = '#28a745';
+
+    const lm = results.multiFaceLandmarks[0];
+    const nariz = lm[1]; // Punta de la nariz: mucho más estable que el iris
+
+    const targetX = (window.innerWidth / 2) + ((1 - nariz.x) - 0.5) * SENSIBILIDAD_X * window.innerWidth;
+    const targetY = (window.innerHeight / 2) + (nariz.y - 0.5) * SENSIBILIDAD_Y * window.innerHeight;
+
+    cursorX += (targetX - cursorX) * FACTOR_SUAVIZADO;
+    cursorY += (targetY - cursorY) * FACTOR_SUAVIZADO;
+
+    const finalX = Math.max(0, Math.min(window.innerWidth - 1, cursorX));
+    const finalY = Math.max(0, Math.min(window.innerHeight - 1, cursorY));
+
+    gazeCursor.style.left = `${finalX}px`;
+    gazeCursor.style.top = `${finalY}px`;
+    gazeCursor.style.display = 'block';
+
+    // Detectar qué tarjeta está debajo del puntero
+    const element = document.elementFromPoint(finalX, finalY);
+    const card = element ? element.closest('.card') : null;
+
+    if (hoveredCard && hoveredCard !== card) {
+      hoveredCard.classList.remove('hovered');
+    }
+    if (card) {
+      card.classList.add('hovered');
+      hoveredCard = card;
+    } else {
+      hoveredCard = null;
     }
 
-    // ==========================================
-    // 1. LÓGICA DEL AJEDREZ
-    // ==========================================
-        function iniciarAjedrez() {
-        game = new Chess();
-        let config = {
-            // URL oficial de las piezas de chessboard.js
-            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
-            position: 'start'
-        };
-        board = Chessboard('board', config);
+    // Detectar parpadeo (umbral fluido 0.22)
+    const ear = (calcularEAR(lm, 33, 133, 159, 145) + calcularEAR(lm, 362, 263, 386, 374)) / 2;
+    if (ear < 0.22 && (Date.now() - lastBlinkTime > 1200)) {
+      lastBlinkTime = Date.now();
+
+      gazeCursor.style.backgroundColor = '#ffc107';
+      gazeCursor.style.transform = 'translate(-50%, -50%) scale(1.5)';
+      setTimeout(() => {
+        gazeCursor.style.backgroundColor = 'rgba(239, 68, 68, 0.85)';
+        gazeCursor.style.transform = 'translate(-50%, -50%) scale(1)';
+      }, 300);
+
+      if (hoveredCard) {
+        selectCard(hoveredCard);
+      } else if (element && element.tagName === 'BUTTON') {
+        element.click();
+      }
     }
+  } else {
+    statusEl.textContent = 'Buscando rostro...';
+    statusEl.classList.remove('active');
+    statusEl.style.background = '#dc3545';
+    gazeCursor.style.display = 'none';
+  }
+});
 
-
-    function hacerClicCasilla(casillaDestinoID) {
-        if (!casillaDestinoID || !game) return;
-
-        $('.square-55d63').removeClass('highlight-square');
-
-        if (casillaOrigen === null) {
-            let pieza = game.get(casillaDestinoID);
-            if (pieza && pieza.color === 'w') { 
-                casillaOrigen = casillaDestinoID;
-                $('.square-' + casillaDestinoID).addClass('highlight-square');
-            }
-        } else {
-            let movimiento = game.move({
-                from: casillaOrigen,
-                to: casillaDestinoID,
-                promotion: 'q' 
-            });
-
-            if (movimiento === null) {
-                casillaOrigen = null; 
-                return;
-            }
-
-            board.position(game.fen());
-            casillaOrigen = null; 
-            window.setTimeout(movimientoIA, 500);
-        }
-    }
-
-    function movimientoIA() {
-        if (!game) return;
-        let movimientosPosibles = game.moves();
-        if (movimientosPosibles.length === 0) return; 
-        let movimientoAleatorio = Math.floor(Math.random() * movimientosPosibles.length);
-        game.move(movimientosPosibles[movimientoAleatorio]);
-        board.position(game.fen());
-    }
-
-    // ==========================================
-    // 2. MEDIAPIPE (SEGUIMIENTO Y PARPADEO)
-    // ==========================================
-    const gazeCursor = document.getElementById('gaze-cursor');
-    const videoElement = document.getElementById('camera-preview');
-    const statusEl = document.getElementById('cam-status');
-
-    const SENSIBILIDAD_X = 5.2, SENSIBILIDAD_Y = 4.8, FACTOR_SUAVIZADO = 0.22;
-    let cursorX = window.innerWidth / 2, cursorY = window.innerHeight / 2;
-    let lastBlinkTime = 0;
-    let hoveredSquare = null; 
-
-    function calcularDistancia(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y); }
-    function calcularEAR(lm, outer, inner, top, bottom) { return calcularDistancia(lm[top], lm[bottom]) / calcularDistancia(lm[outer], lm[inner]); }
-
-    const faceMesh = new FaceMesh({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}` });
-    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
-
-    faceMesh.onResults((results) => {
-        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-            statusEl.textContent = 'Cámara OK (Parpadea para Mover)';
-            statusEl.style.background = '#28a745';
-            
-            const lm = results.multiFaceLandmarks[0];
-            const nariz = lm[1];
-
-            const targetX = (window.innerWidth / 2) + ((1 - nariz.x) - 0.5) * SENSIBILIDAD_X * window.innerWidth;
-            const targetY = (window.innerHeight / 2) + (nariz.y - 0.5) * SENSIBILIDAD_Y * window.innerHeight;
-
-            cursorX += (targetX - cursorX) * FACTOR_SUAVIZADO;
-            cursorY += (targetY - cursorY) * FACTOR_SUAVIZADO;
-            
-            const finalX = Math.max(0, Math.min(window.innerWidth, cursorX));
-            const finalY = Math.max(0, Math.min(window.innerHeight, cursorY));
-
-            gazeCursor.style.left = `${finalX}px`; gazeCursor.style.top = `${finalY}px`;
-            gazeCursor.style.display = 'block';
-
-            const element = document.elementFromPoint(finalX, finalY);
-            
-            if (hoveredSquare) hoveredSquare.classList.remove('hovered-square');
-            hoveredSquare = null;
-            let currentSquareID = null;
-
-            if (element) {
-                const celdaTablero = element.closest('.square-55d63');
-                if (celdaTablero) {
-                    hoveredSquare = celdaTablero;
-                    celdaTablero.classList.add('hovered-square');
-                    currentSquareID = celdaTablero.getAttribute('data-square'); 
-                }
-            }
-
-            const ear = (calcularEAR(lm, 33, 133, 159, 145) + calcularEAR(lm, 362, 263, 386, 374)) / 2;
-            if (ear < 0.22 && (Date.now() - lastBlinkTime > 1500)) {
-                lastBlinkTime = Date.now();
-                
-                gazeCursor.style.backgroundColor = '#ffc107';
-                gazeCursor.style.transform = 'translate(-50%, -50%) scale(1.5)';
-                setTimeout(() => {
-                    gazeCursor.style.backgroundColor = 'rgba(239, 68, 68, 0.85)';
-                    gazeCursor.style.transform = 'translate(-50%, -50%) scale(1)';
-                }, 300);
-
-                if (currentSquareID) {
-                    hacerClicCasilla(currentSquareID);
-                }
-            }
-        } else {
-            statusEl.textContent = 'Buscando rostro...'; statusEl.style.background = '#dc3545';
-            gazeCursor.style.display = 'none';
-        }
+// Inicialización idéntica a la versión que te funcionó
+async function startCamera() {
+  try {
+    statusEl.textContent = 'Iniciando cámara...';
+    activeStream = await navigator.mediaDevices.getUserMedia({
+      video: { width: 640, height: 480, facingMode: 'user' },
+      audio: false
     });
+    videoElement.srcObject = activeStream;
+    await videoElement.play();
 
-    async function startCamera() {
-        try {
-            statusEl.textContent = "Solicitando permisos...";
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false });
-            videoElement.srcObject = stream; 
-            await videoElement.play();
-            
-            statusEl.textContent = "Cargando IA...";
-            new Camera(videoElement, { onFrame: async () => { await faceMesh.send({ image: videoElement }); }, width: 640, height: 480 }).start();
-        } catch (err) { 
-            statusEl.textContent = 'Error: Permiso denegado'; 
-            statusEl.style.background = '#dc3545'; 
-            console.error(err);
-        }
-    }
+    cameraInstance = new Camera(videoElement, {
+      onFrame: async () => {
+        await faceMesh.send({ image: videoElement });
+      },
+      width: 640,
+      height: 480
+    });
+    cameraInstance.start();
+    startBtn.disabled = true;
+    stopBtn.disabled = false;
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = 'Cámara bloqueada (Tocá Reintentar)';
+    statusEl.style.background = '#dc3545';
+    startBtn.disabled = false;
+  }
+}
+
+function stopCamera() {
+  if (cameraInstance) { try { cameraInstance.stop(); } catch (e) {} }
+  if (activeStream) { activeStream.getTracks().forEach(t => t.stop()); }
+  videoElement.srcObject = null;
+  gazeCursor.style.display = 'none';
+  statusEl.textContent = 'Cámara apagada';
+  statusEl.classList.remove('active');
+  statusEl.style.background = '#334155';
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+}
+
+startBtn.addEventListener('click', startCamera);
+stopBtn.addEventListener('click', stopCamera);
+window.addEventListener('DOMContentLoaded', startCamera);
 </script>
 </body>
 </html>
