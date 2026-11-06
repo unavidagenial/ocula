@@ -84,15 +84,16 @@
     // ==========================================
     // 1. LÓGICA DEL AJEDREZ
     // ==========================================
-    function iniciarAjedrez() {
+        function iniciarAjedrez() {
         game = new Chess();
         let config = {
-            // URL actualizada al servidor que no te bloquea
-            pieceTheme: 'https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/img/chesspieces/wikipedia/{piece}.png',
+            // URL oficial de las piezas de chessboard.js
+            pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
             position: 'start'
         };
         board = Chessboard('board', config);
     }
+
 
     function hacerClicCasilla(casillaDestinoID) {
         if (!casillaDestinoID || !game) return;
