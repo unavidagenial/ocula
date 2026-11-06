@@ -1,409 +1,390 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>La Caperucita Roja - Tablero CAA</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Control de Stock - Ferretería (Accesible)</title>
 
+    <!-- MediaPipe Face Mesh & Camera Utils -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 
-  <!-- MediaPipe Face Mesh & Camera Utils -->
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        
+        /* Menú Desplegable */
+        .menu-container { position: relative; display: inline-block; margin-bottom: 20px; }
+        .menu-btn { background-color: #007bff; color: white; padding: 15px 25px; border: none; cursor: pointer; border-radius: 4px; font-size: 18px; font-weight: bold;}
+        .menu-content { display: none; position: absolute; background-color: #f9f9f9; min-width: 200px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 10; border-radius: 4px; }
+        .menu-content a { color: black; padding: 15px 20px; text-decoration: none; display: block; cursor: pointer; border-bottom: 1px solid #ddd; font-size: 16px; }
+        .menu-content a:hover, .hovered-element { background-color: #d1ecf1 !important; }
+        .menu-container:hover .menu-content { display: block; }
 
-  <style>
-    * {
-      box-sizing: border-box;
-      user-select: none;
-    }
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #0f172a;
-      color: #f8fafc;
-      overflow: hidden;
-      height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
+        .form-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .form-group.hidden { display: none; }
+        input { flex: 1; padding: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        button { padding: 15px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; transition: 0.3s; }
+        button:hover { background-color: #218838; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #ddd; font-size: 16px; }
+        th { background-color: #f8f9fa; font-weight: bold; color: #333; }
+        
+        /* Sistema de Semáforo */
+        .stock-verde { color: green; font-weight: bold; }
+        .stock-amarillo { color: #d4a017; font-weight: bold; } 
+        .stock-rojo { color: red; font-weight: bold; }
 
-    header {
-      padding: 10px 20px;
-      background: #1e293b;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    }
-    h1 {
-      margin: 0;
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #38bdf8;
-    }
-    .status-badge {
-      padding: 6px 12px;
-      border-radius: 9999px;
-      font-size: 0.85rem;
-      background: #334155;
-      color: #94a3b8;
-    }
-    .status-badge.active {
-      background: #065f46;
-      color: #6ee7b7;
-    }
+        /* Super Admin */
+        #adminPanel { display: none; margin-top: 20px; padding: 20px; background-color: #eee; border-radius: 8px; }
+        .locked-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); color: white; text-align: center; padding-top: 20%; z-index: 1000; }
+        .locked-screen h2 { font-size: 3em; color: #dc3545; }
 
-    /* Grilla de 12 tarjetas: 4 columnas x 3 filas */
-    .grid-board {
-      flex: 1;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      grid-template-rows: repeat(3, 1fr);
-      gap: 12px;
-      padding: 12px;
-    }
+        /* Elementos de MediaPipe (Cámara y Cursor) */
+        #gaze-cursor {
+            position: fixed;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.85);
+            border: 3px solid #ffffff;
+            pointer-events: none; /* Crucial para que el clic traspase el punto rojo */
+            transform: translate(-50%, -50%);
+            z-index: 9999;
+            box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);
+            display: none;
+            transition: background-color 0.2s;
+        }
 
-    .card {
-      background: #ffffff;
-      color: #0f172a;
-      border-radius: 14px;
-      border: 4px solid #cbd5e1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      position: relative;
-      cursor: pointer;
-      overflow: hidden;
-      transition: transform 0.15s ease, border-color 0.2s ease;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-      padding: 6px;
-    }
+        #camera-preview {
+            position: fixed;
+            bottom: 12px;
+            right: 12px;
+            width: 150px;
+            height: 110px;
+            border-radius: 8px;
+            border: 2px solid #007bff;
+            object-fit: cover;
+            transform: scaleX(-1);
+            z-index: 1000;
+            background: #000;
+        }
 
-    .card.hovered {
-      border-color: #0284c7;
-      transform: scale(1.02);
-    }
-
-    .card img, .card svg {
-      max-height: 55%;
-      max-width: 65%;
-      object-fit: contain;
-      margin-bottom: 6px;
-    }
-
-    .card-label {
-      font-size: 0.95rem;
-      font-weight: 800;
-      text-transform: uppercase;
-      text-align: center;
-      color: #1e293b;
-    }
-
-    .dwell-progress {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      height: 8px;
-      width: 0%;
-      background: #0284c7;
-      transition: width 0.05s linear;
-    }
-
-    #gaze-cursor {
-      position: fixed;
-      width: 26px;
-      height: 26px;
-      border-radius: 50%;
-      background: rgba(239, 68, 68, 0.85);
-      border: 2px solid #ffffff;
-      pointer-events: none;
-      transform: translate(-50%, -50%);
-      z-index: 9999;
-      box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);
-      display: none;
-    }
-
-    #camera-preview {
-      position: fixed;
-      bottom: 12px;
-      right: 12px;
-      width: 130px;
-      height: 95px;
-      border-radius: 8px;
-      border: 2px solid #38bdf8;
-      object-fit: cover;
-      transform: scaleX(-1);
-      z-index: 1000;
-      background: #000;
-    }
-  </style>
+        #cam-status {
+            position: fixed;
+            bottom: 130px;
+            right: 12px;
+            background: #333;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+    </style>
 </head>
 <body>
 
-  <header>
-    <h1>La Caperucita Roja — Tablero CAA</h1>
-    <div id="status" class="status-badge">Iniciando cámara...</div>
-  </header>
+<div id="cam-status">Iniciando cámara...</div>
+<div id="gaze-cursor"></div>
+<video id="camera-preview" autoplay playsinline muted></video>
 
-  <main class="grid-board" id="aac-grid">
-    <!-- Fila 1: Personajes -->
-    <div class="card" data-phrase="Caperucita roja">
-      <img src="https://i.pinimg.com/originals/15/3b/ef/153bef0e68858821313046d939879898.png" alt="Caperucita">
-      <div class="card-label">Caperucita roja</div>
-      <div class="dwell-progress"></div>
+<!-- Pantalla de Bloqueo -->
+<div id="lockedScreen" class="locked-screen">
+    <h2>SISTEMA BLOQUEADO</h2>
+    <p>El temporizador de pagos ha llegado a 0. Contacte al administrador.</p>
+</div>
+
+<div class="container" id="mainApp">
+    <h1>🛒 Control de Stock</h1>
+    
+    <div class="menu-container">
+        <button class="menu-btn" id="menuPrincipalBtn">Menú ☰</button>
+        <div class="menu-content">
+            <a onclick="mostrarSeccion('articulos')">Ver Artículos</a>
+            <a onclick="mostrarSeccion('agregar')">Agregar Producto</a>
+            <a onclick="mostrarSeccion('eliminar')">Modo Eliminar</a>
+            <a onclick="mostrarSeccion('admin')">Super admin</a>
+        </div>
     </div>
 
-    <div class="card" data-phrase="Lobo feroz">
-      <img src="https://thumbs.dreamstime.com/b/lobo-del-caperucita-rojo-133290514.jpg?w=576" alt="Lobo">
-      <div class="card-label">Lobo feroz</div>
-      <div class="dwell-progress"></div>
+    <!-- Formulario de Agregar -->
+    <form class="form-group hidden" id="stockForm">
+        <input type="number" id="unidades" placeholder="Unidades" required min="0">
+        <input type="text" id="detalle" placeholder="Detalle del producto" required>
+        <input type="number" id="precio" placeholder="Precio ($)" required step="0.01" min="0">
+        <button type="submit" id="btnGuardar">Guardar Producto</button>
+    </form>
+
+    <!-- Panel de Super Admin -->
+    <div id="adminPanel">
+        <h3>Acceso Super Admin</h3>
+        <input type="text" id="adminUser" placeholder="Usuario">
+        <input type="password" id="adminPass" placeholder="Contraseña">
+        <button onclick="loginAdmin()">Ingresar</button>
+        
+        <div id="timerConfig" style="display:none; margin-top:15px;">
+            <h4>Configurar Temporizador</h4>
+            <p>Tiempo restante: <span id="timeLeftDisplay"></span> seg</p>
+            <input type="number" id="diasTimer" placeholder="Días para el bloqueo" min="1">
+            <button onclick="configurarTimer()">Establecer Timer</button>
+        </div>
     </div>
 
-    <div class="card" data-phrase="Abuelita">
-      <img src="https://i.pinimg.com/736x/ec/d4/15/ecd41592c82c876acde4a13f1cdd9529.jpg" alt="Abuelita">
-      <div class="card-label">Abuelita</div>
-      <div class="dwell-progress"></div>
-    </div>
+    <!-- Tabla de Artículos -->
+    <table id="stockTable">
+        <thead>
+            <tr>
+                <th>Unidades</th>
+                <th>Detalle</th>
+                <th>Precio ($)</th>
+                <th class="col-eliminar hidden">Acción</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody">
+            <!-- Productos -->
+        </tbody>
+    </table>
+</div>
 
-    <div class="card" data-phrase="Cazador">
-      <img src="https://th.bing.com/th/id/R.a242839f13b8c4c933dacdc6c93a27d0?rik=mQqfArX3UB4zqQ&riu=http%3a%2f%2frosatubes.r.o.pic.centerblog.net%2f9ffb9949.png&ehk=IuVpWW%2fle2W41u3LcigfQYlHmPLRkaSPseEcpk4hKBY%3d&risl=&pid=ImgRaw&r=0" alt="Cazador">
-      <div class="card-label">Cazador</div>
-      <div class="dwell-progress"></div>
-    </div>
+<script>
+    // ==========================================
+    // LÓGICA DE LA FERRETERÍA (INVENTARIO)
+    // ==========================================
+    const form = document.getElementById('stockForm');
+    const tableBody = document.getElementById('tableBody');
+    const formSection = document.getElementById('stockForm');
+    const adminPanel = document.getElementById('adminPanel');
+    const colsEliminar = document.getElementsByClassName('col-eliminar');
+    const lockedScreen = document.getElementById('lockedScreen');
+    const mainApp = document.getElementById('mainApp');
+    
+    let inventario = JSON.parse(localStorage.getItem('ferreteriaStock')) || [];
+    let timerExpiration = localStorage.getItem('timerExpiration');
 
-    <!-- Fila 2: Necesidades y familia -->
-    <div class="card" data-phrase="Tengo sed, por favor dame agua">
-      <svg viewBox="0 0 100 100" stroke="#0284c7" stroke-width="4" fill="none" stroke-linejoin="round">
-        <path d="M28 20 L72 20 L62 85 A 4 4 0 0 1 58 89 L42 89 A 4 4 0 0 1 38 85 Z" fill="#e0f2fe"></path>
-        <path d="M33 45 Q 50 40 67 45" stroke="#38bdf8" stroke-width="3" fill="none"></path>
-      </svg>
-      <div class="card-label">Tengo sed</div>
-      <div class="dwell-progress"></div>
-    </div>
+    function checkTimer() {
+        if (!timerExpiration) return;
+        const now = new Date().getTime();
+        const expirationTime = parseInt(timerExpiration);
+        if (now >= expirationTime) {
+            lockedScreen.style.display = 'block';
+            mainApp.style.display = 'none';
+        } else {
+            const display = document.getElementById('timeLeftDisplay');
+            if (display) display.innerText = Math.floor((expirationTime - now) / 1000);
+        }
+    }
+    setInterval(checkTimer, 1000);
+    checkTimer();
 
-    <div class="card" data-phrase="Necesito descansar">
-      <svg viewBox="0 0 100 100" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round">
-        <rect x="15" y="55" width="70" height="25" rx="4" fill="#cbd5e1"></rect>
-        <circle cx="35" cy="45" r="10" fill="#fed7aa" stroke="#ea580c"></circle>
-        <path d="M25 55 L75 55 L75 75 L25 75 Z" fill="#93c5fd"></path>
-        <path d="M45 42 Q 60 30 75 42" stroke="#64748b" stroke-dasharray="2 3"></path>
-      </svg>
-      <div class="card-label">Descansar</div>
-      <div class="dwell-progress"></div>
-    </div>
+    function mostrarSeccion(seccion) {
+        formSection.classList.add('hidden');
+        adminPanel.style.display = 'none';
+        for(let col of colsEliminar) col.classList.add('hidden');
+        
+        if (seccion === 'agregar') formSection.classList.remove('hidden');
+        else if (seccion === 'eliminar') {
+            for(let col of colsEliminar) col.classList.remove('hidden');
+            renderTable(true);
+        }
+        else if (seccion === 'admin') adminPanel.style.display = 'block';
+        else if (seccion === 'articulos') renderTable(false);
+    }
 
-    <div class="card" data-phrase="Quiero a mi familia">
-      <svg viewBox="0 0 100 100" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round">
-        <circle cx="32" cy="30" r="8" fill="#fed7aa"></circle>
-        <path d="M22 65 L22 45 C 22 40 42 40 42 45 L42 65" fill="#86efac"></path>
-        <circle cx="68" cy="32" r="8" fill="#fed7aa"></circle>
-        <path d="M58 65 L58 47 C 58 42 78 42 78 47 L78 65" fill="#f472b6"></path>
-        <circle cx="50" cy="54" r="6" fill="#fed7aa"></circle>
-        <path d="M44 80 L44 66 C 44 62 56 62 56 66 L56 80" fill="#fde047"></path>
-      </svg>
-      <div class="card-label">Mi familia</div>
-      <div class="dwell-progress"></div>
-    </div>
+    function obtenerClaseSemaforo(stock) {
+        const uni = parseInt(stock);
+        if (uni >= 6) return 'stock-verde';
+        if (uni === 5) return 'stock-amarillo';
+        return 'stock-rojo';
+    }
 
-    <div class="card" data-phrase="Tengo hambre, quiero comer">
-      <svg viewBox="0 0 100 100" fill="none" stroke="#ea580c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="48" cy="30" r="10" fill="#fed7aa"></circle>
-        <path d="M48 42 L48 78" stroke-width="4"></path>
-        <path d="M48 50 L68 50 L68 44" stroke-width="3"></path>
-        <circle cx="70" cy="42" r="3" fill="#ea580c"></circle>
-        <path d="M40 90 L48 78 L56 90" stroke-width="4"></path>
-      </svg>
-      <div class="card-label">Tengo hambre</div>
-      <div class="dwell-progress"></div>
-    </div>
+    function renderTable(mostrarEliminar = false) {
+        tableBody.innerHTML = '';
+        inventario.forEach((item, index) => {
+            const row = document.createElement('tr');
+            let html = `<td>${item.unidades}</td><td class="${obtenerClaseSemaforo(item.unidades)}">${item.detalle}</td><td>$${item.precio}</td>`;
+            if (mostrarEliminar) html += `<td class="col-eliminar"><button style="background-color:#dc3545;" onclick="eliminarProducto(${index})">Borrar</button></td>`;
+            else html += `<td class="col-eliminar hidden"></td>`;
+            row.innerHTML = html;
+            tableBody.appendChild(row);
+        });
+    }
 
-    <!-- Fila 3: Emociones y Respuestas -->
-    <div class="card" data-phrase="Estoy enojado">
-      <img src="https://i.pinimg.com/1200x/f0/6d/94/f06d947e51f04483e0a6aa2f4f8832d6.jpg" alt="Enojado">
-      <div class="card-label">Enojado</div>
-      <div class="dwell-progress"></div>
-    </div>
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const unidades = document.getElementById('unidades').value;
+        const detalle = document.getElementById('detalle').value;
+        const precio = document.getElementById('precio').value;
+        inventario.push({ unidades, detalle, precio });
+        localStorage.setItem('ferreteriaStock', JSON.stringify(inventario));
+        form.reset();
+        renderTable(false);
+        mostrarSeccion('articulos');
+    });
 
-    <div class="card" data-phrase="Estoy feliz">
-      <img src="https://i.pinimg.com/736x/3d/d6/ee/3dd6ee19c54365815e73cec6aa777249.jpg" alt="Feliz">
-      <div class="card-label">Feliz</div>
-      <div class="dwell-progress"></div>
-    </div>
+    function eliminarProducto(index) {
+        inventario.splice(index, 1);
+        localStorage.setItem('ferreteriaStock', JSON.stringify(inventario));
+        renderTable(true);
+    }
 
-    <div class="card" data-phrase="Estoy triste">
-      <img src="https://i.pinimg.com/736x/93/c4/56/93c456d0300ecda60e7d26f2aa37fd71.jpg" alt="Triste">
-      <div class="card-label">Triste</div>
-      <div class="dwell-progress"></div>
-    </div>
+    function loginAdmin() {
+        if (document.getElementById('adminUser').value === 'admin' && document.getElementById('adminPass').value === '1234') {
+            document.getElementById('timerConfig').style.display = 'block';
+            document.getElementById('adminUser').style.display = 'none';
+            document.getElementById('adminPass').style.display = 'none';
+            event.target.style.display = 'none';
+        } else alert('Credenciales incorrectas');
+    }
 
-    <div class="card" data-phrase="Sí">
-      <img src="https://thumbs.dreamstime.com/b/icono-de-marca-verificaci%C3%B3n-blanca-en-bot%C3%B3n-verde-con-marco-blanco-475662500.jpg?w=768" alt="Sí">
-      <div class="card-label">Sí</div>
-      <div class="dwell-progress"></div>
-    </div>
-  </main>
+    function configurarTimer() {
+        const dias = document.getElementById('diasTimer').value;
+        if (dias > 0) {
+            timerExpiration = new Date().getTime() + (dias * 24 * 60 * 60 * 1000);
+            localStorage.setItem('timerExpiration', timerExpiration);
+            alert(`Temporizador configurado para ${dias} días.`);
+            lockedScreen.style.display = 'none';
+            mainApp.style.display = 'block';
+        }
+    }
 
-  <div id="gaze-cursor"></div>
-  <video id="camera-preview" autoplay playsinline muted></video>
+    renderTable(false);
 
-  <script>
-    const statusEl = document.getElementById('status');
+    // ==========================================
+    // LÓGICA DE MEDIAPIPE (SEGUIMIENTO Y CLIC POR PARPADEO)
+    // ==========================================
     const gazeCursor = document.getElementById('gaze-cursor');
     const videoElement = document.getElementById('camera-preview');
-    const cards = document.querySelectorAll('.card');
+    const statusEl = document.getElementById('cam-status');
 
-    let currentTarget = null;
-    let dwellTimer = null;
-    let dwellStart = null;
-    const DWELL_DURATION = 1300; // 1.3 segundos de fijación
-
-    // --- CONFIGURACIÓN DE SENSIBILIDAD Y CONTROL POR NARIZ ---
-    // Aumentar estos valores si querés que con menos movimiento cubra más pantalla:
+    // Configuración de sensibilidad
     const SENSIBILIDAD_X = 5.2; 
     const SENSIBILIDAD_Y = 4.8; 
-    const FACTOR_SUAVIZADO = 0.22; // Suaviza el puntero para que no tironee (0.1 = más lento/suave, 0.4 = más rápido)
-
+    const FACTOR_SUAVIZADO = 0.22;
     let cursorX = window.innerWidth / 2;
     let cursorY = window.innerHeight / 2;
 
-    function hablar(texto) {
-      if (!('speechSynthesis' in window)) return;
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(texto);
-      utterance.lang = 'es-ES';
-      utterance.rate = 0.95;
-      utterance.pitch = 1.0;
-      window.speechSynthesis.speak(utterance);
+    // Variables para el parpadeo
+    let lastBlinkTime = 0;
+    let hoveredElement = null;
+
+    // Función matemática para calcular si el ojo está cerrado (Eye Aspect Ratio - EAR)
+    function calcularDistancia(p1, p2) {
+        return Math.hypot(p1.x - p2.x, p1.y - p2.y);
     }
 
-    cards.forEach(card => {
-      card.addEventListener('click', () => {
-        hablar(card.dataset.phrase);
-        card.style.transform = 'scale(0.96)';
-        setTimeout(() => card.style.transform = '', 150);
-      });
-    });
-
-    function handleGazePosition(x, y) {
-      gazeCursor.style.left = `${x}px`;
-      gazeCursor.style.top = `${y}px`;
-      gazeCursor.style.display = 'block';
-
-      const element = document.elementFromPoint(x, y);
-      const hoveredCard = element ? element.closest('.card') : null;
-
-      if (hoveredCard !== currentTarget) {
-        resetDwell();
-        if (hoveredCard) {
-          currentTarget = hoveredCard;
-          currentTarget.classList.add('hovered');
-          dwellStart = performance.now();
-          startDwellCycle();
-        }
-      }
+    function calcularEAR(landmarks, outer, inner, top, bottom) {
+        let alto = calcularDistancia(landmarks[top], landmarks[bottom]);
+        let ancho = calcularDistancia(landmarks[outer], landmarks[inner]);
+        return alto / ancho;
     }
 
-    function resetDwell() {
-      if (currentTarget) {
-        currentTarget.classList.remove('hovered');
-        const bar = currentTarget.querySelector('.dwell-progress');
-        if (bar) bar.style.width = '0%';
-      }
-      currentTarget = null;
-      dwellStart = null;
-      if (dwellTimer) cancelAnimationFrame(dwellTimer);
-    }
-
-    function startDwellCycle() {
-      function tick(now) {
-        if (!currentTarget || !dwellStart) return;
-        const elapsed = now - dwellStart;
-        const progress = Math.min((elapsed / DWELL_DURATION) * 100, 100);
-        const bar = currentTarget.querySelector('.dwell-progress');
-        if (bar) bar.style.width = `${progress}%`;
-
-        if (progress >= 100) {
-          hablar(currentTarget.dataset.phrase);
-          resetDwell();
-        } else {
-          dwellTimer = requestAnimationFrame(tick);
-        }
-      }
-      dwellTimer = requestAnimationFrame(tick);
-    }
-
-    // Inicialización de MediaPipe FaceMesh
     const faceMesh = new FaceMesh({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
 
     faceMesh.setOptions({
-      maxNumFaces: 1,
-      refineLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
+        maxNumFaces: 1,
+        refineLandmarks: true,
+        minDetectionConfidence: 0.5,
+        minTrackingConfidence: 0.5
     });
 
     faceMesh.onResults((results) => {
-      if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-        statusEl.textContent = 'Rastreo activo (Control por Nariz)';
-        statusEl.classList.add('active');
+        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
+            statusEl.textContent = 'Rastreo activo (Nariz + Parpadeo)';
+            statusEl.style.background = '#28a745';
+            
+            const landmarks = results.multiFaceLandmarks[0];
+            const nariz = landmarks[1];
 
-        const landmarks = results.multiFaceLandmarks[0];
+            // 1. MOVER EL CURSOR CON LA NARIZ
+            const normX = 1 - nariz.x;
+            const targetX = (window.innerWidth / 2) + (normX - 0.5) * SENSIBILIDAD_X * window.innerWidth;
+            const targetY = (window.innerHeight / 2) + (nariz.y - 0.5) * SENSIBILIDAD_Y * window.innerHeight;
 
-        // Landmark 1: Punta de la nariz (máxima estabilidad anatómica)
-        const nariz = landmarks[1];
+            cursorX += (targetX - cursorX) * FACTOR_SUAVIZADO;
+            cursorY += (targetY - cursorY) * FACTOR_SUAVIZADO;
 
-        // Efecto espejo horizontal
-        const normX = 1 - nariz.x;
-        const normY = nariz.y;
+            const finalX = Math.max(0, Math.min(window.innerWidth, cursorX));
+            const finalY = Math.max(0, Math.min(window.innerHeight, cursorY));
 
-        // Mapeo amplificado alrededor del punto central (0.5, 0.5)
-        const targetX = (window.innerWidth / 2) + (normX - 0.5) * SENSIBILIDAD_X * window.innerWidth;
-        const targetY = (window.innerHeight / 2) + (normY - 0.5) * SENSIBILIDAD_Y * window.innerHeight;
+            gazeCursor.style.left = `${finalX}px`;
+            gazeCursor.style.top = `${finalY}px`;
+            gazeCursor.style.display = 'block';
 
-        // Filtro paso bajo exponencial (anti-vibración)
-        cursorX += (targetX - cursorX) * FACTOR_SUAVIZADO;
-        cursorY += (targetY - cursorY) * FACTOR_SUAVIZADO;
+            // Resaltar elemento debajo del cursor
+            const element = document.elementFromPoint(finalX, finalY);
+            if (hoveredElement && hoveredElement !== element) {
+                hoveredElement.classList.remove('hovered-element');
+            }
+            if (element && (element.tagName === 'BUTTON' || element.tagName === 'A' || element.tagName === 'INPUT')) {
+                element.classList.add('hovered-element');
+                hoveredElement = element;
+            } else {
+                hoveredElement = null;
+            }
 
-        // Limitar dentro del viewport
-        const finalX = Math.max(0, Math.min(window.innerWidth, cursorX));
-        const finalY = Math.max(0, Math.min(window.innerHeight, cursorY));
+            // 2. DETECTAR PARPADEO PARA HACER CLIC
+            // Ojo izquierdo (índices: exterior 33, interior 133, arriba 159, abajo 145)
+            const earIzquierdo = calcularEAR(landmarks, 33, 133, 159, 145);
+            // Ojo derecho (índices: interior 362, exterior 263, arriba 386, abajo 374)
+            const earDerecho = calcularEAR(landmarks, 362, 263, 386, 374);
+            
+            const promedioEAR = (earIzquierdo + earDerecho) / 2;
 
-        handleGazePosition(finalX, finalY);
-      } else {
-        statusEl.textContent = 'Buscando rostro...';
-        statusEl.classList.remove('active');
-        resetDwell();
-      }
+            // Umbral de parpadeo (si baja de 0.20, los ojos están cerrados)
+            if (promedioEAR < 0.20 && (Date.now() - lastBlinkTime > 1500)) {
+                lastBlinkTime = Date.now();
+                
+                // Efecto visual de clic
+                gazeCursor.style.backgroundColor = '#ffeb3b';
+                setTimeout(() => gazeCursor.style.backgroundColor = 'rgba(239, 68, 68, 0.85)', 300);
+
+                // Ejecutar el clic en el elemento debajo del cursor
+                if (element) {
+                    if (element.tagName === 'INPUT') {
+                        element.focus(); // Si es un campo de texto, poner el cursor para escribir
+                    } else {
+                        element.click(); // Si es botón o enlace, hacer clic
+                    }
+                }
+            }
+        } else {
+            statusEl.textContent = 'Buscando rostro...';
+            statusEl.style.background = '#dc3545';
+            gazeCursor.style.display = 'none';
+        }
     });
 
-    // Conexión nativa robusta a la cámara
     async function startCamera() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 640, height: 480, facingMode: 'user' },
-          audio: false
-        });
-        videoElement.srcObject = stream;
-        await videoElement.play();
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { width: 640, height: 480, facingMode: 'user' },
+                audio: false
+            });
+            videoElement.srcObject = stream;
+            await videoElement.play();
 
-        const camera = new Camera(videoElement, {
-          onFrame: async () => {
-            await faceMesh.send({ image: videoElement });
-          },
-          width: 640,
-          height: 480
-        });
-        camera.start();
-        statusEl.textContent = 'Cámara conectada';
-      } catch (err) {
-        console.error('Error de acceso a la cámara:', err);
-        statusEl.textContent = 'Error: permiso de cámara bloqueado o no disponible';
-      }
+            const camera = new Camera(videoElement, {
+                onFrame: async () => {
+                    await faceMesh.send({ image: videoElement });
+                },
+                width: 640,
+                height: 480
+            });
+            camera.start();
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = 'Permiso de cámara denegado';
+            statusEl.style.background = '#dc3545';
+        }
     }
 
     window.addEventListener('DOMContentLoaded', startCamera);
-  </script>
+</script>
+
 </body>
+</html>
