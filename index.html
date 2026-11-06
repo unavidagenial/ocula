@@ -28,6 +28,7 @@
         .form-group.hidden { display: none; }
         input { flex: 1; padding: 15px; border: 2px solid #ccc; border-radius: 4px; font-size: 18px; }
         
+        /* Buscador */
         .buscador-container { margin-bottom: 15px; }
         #buscador { width: 100%; padding: 15px; font-size: 18px; border: 2px solid #17a2b8; border-radius: 4px; box-sizing: border-box; }
 
@@ -42,6 +43,7 @@
         .stock-amarillo { color: #d4a017; font-weight: bold; } 
         .stock-rojo { color: red; font-weight: bold; }
 
+        /* Super Admin */
         #adminPanel { display: none; margin-top: 20px; padding: 20px; background-color: #eee; border-radius: 8px; }
 
         /* Elementos de MediaPipe (Cámara y Cursor) */
@@ -64,22 +66,24 @@
             padding: 8px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; z-index: 1000;
         }
 
-        /* --- TECLADO NUMÉRICO (MODIFICADO: Más compacto y a la izquierda) --- */
+        /* --- NUEVO: TECLADO NUMÉRICO --- */
         #virtual-keypad {
-            display: none; position: fixed; bottom: 15px; left: 15px; width: 280px;
-            background: #e9ecef; padding: 12px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            z-index: 5000; box-sizing: border-box; text-align: center; border: 2px solid #6c757d;
+            display: none; position: fixed; bottom: 0; left: 0; width: 100%;
+            background: #e9ecef; padding: 15px; box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            z-index: 5000; box-sizing: border-box; text-align: center;
         }
-        .keypad-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .keypad-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 400px; margin: auto;
+        }
         .key-btn {
-            background: #fff; border: 2px solid #ced4da; border-radius: 8px; padding: 12px;
-            font-size: 20px; font-weight: bold; color: #333; cursor: pointer;
+            background: #fff; border: 2px solid #ced4da; border-radius: 8px; padding: 20px;
+            font-size: 24px; font-weight: bold; color: #333; cursor: pointer;
         }
         .key-btn:active, .hovered-element.key-btn { background: #ffeeba !important; outline: 3px solid #ffc107 !important; }
         .key-action { background: #6c757d; color: white; border-color: #5a6268; }
-        .key-close { background: #dc3545; color: white; border-color: #c82333; grid-column: span 3; font-size: 16px; padding: 10px; }
+        .key-close { background: #dc3545; color: white; border-color: #c82333; grid-column: span 3; }
 
-        /* --- ESTADO DE VOZ --- */
+        /* --- NUEVO: ESTADO DE VOZ --- */
         #voice-status {
             display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
             background: rgba(0,0,0,0.8); color: white; padding: 30px; border-radius: 12px;
@@ -95,11 +99,13 @@
 <div id="gaze-cursor"></div>
 <video id="camera-preview" autoplay playsinline muted></video>
 
+<!-- Indicador de Dictado por Voz -->
 <div id="voice-status">
     <div class="mic-icon">🎤</div>
     <div>Escuchando...<br><span style="font-size:16px;font-weight:normal;">Habla ahora para escribir</span></div>
 </div>
 
+<!-- Teclado Virtual Numérico -->
 <div id="virtual-keypad">
     <div class="keypad-grid">
         <button class="key-btn" onclick="teclar('1')">1</button>
@@ -126,7 +132,6 @@
         <div class="menu-content" id="menuContentDiv">
             <a onclick="mostrarSeccion('articulos')">👁️ Ver Artículos (Tabla)</a>
             <a onclick="mostrarSeccion('agregar')">➕ Agregar Producto</a>
-            <a onclick="mostrarSeccion('editar')">✏️ Modo Editar</a>
             <a onclick="mostrarSeccion('eliminar')">🗑️ Modo Eliminar</a>
             <a onclick="mostrarSeccion('admin')">⚙️ Super admin</a>
         </div>
@@ -137,20 +142,20 @@
     </div>
 
     <form class="form-group hidden" id="stockForm">
-        <input type="number" id="unidades" placeholder="Unidades (Teclado)" required min="0" readonly>
-        <input type="text" id="detalle" placeholder="Detalle (Dictar por voz)" required readonly>
-        <input type="number" id="precio" placeholder="Precio ($) (Teclado)" required step="0.01" min="0" readonly>
+        <input type="number" id="unidades" placeholder="Unidades (Parpadea para teclado)" required min="0" readonly>
+        <input type="text" id="detalle" placeholder="Detalle (Parpadea para dictar)" required readonly>
+        <input type="number" id="precio" placeholder="Precio ($) (Parpadea para teclado)" required step="0.01" min="0" readonly>
         <button type="submit" id="btnGuardar">Guardar Producto</button>
     </form>
 
     <div id="adminPanel">
         <h3>Acceso Super Admin</h3>
-        <p>Las funciones avanzadas están ocultas temporalmente.</p>
+        <p>Las funciones avanzadas están ocultas temporalmente en esta vista simplificada.</p>
     </div>
 
     <table id="stockTable">
         <thead>
-            <tr><th>Unidades</th><th>Detalle</th><th>Precio ($)</th><th class="col-acciones hidden">Acción</th></tr>
+            <tr><th>Unidades</th><th>Detalle</th><th>Precio ($)</th><th class="col-eliminar hidden">Acción</th></tr>
         </thead>
         <tbody id="tableBody"></tbody>
     </table>
@@ -158,7 +163,7 @@
 
 <script>
     // ==========================================
-    // 1. SISTEMA DE FERRETERÍA (Inventario, Agregar, Editar, Eliminar)
+    // 1. SISTEMA DE FERRETERÍA
     // ==========================================
     const form = document.getElementById('stockForm');
     const tableBody = document.getElementById('tableBody');
@@ -167,8 +172,6 @@
     const menuContentDiv = document.getElementById('menuContentDiv');
     let inventario = JSON.parse(localStorage.getItem('ferreteriaStock')) || [];
     
-    let editandoIndex = null; // Variable para saber qué producto estamos modificando
-
     function toggleMenu() {
         menuContentDiv.style.display = menuContentDiv.style.display === 'block' ? 'none' : 'block';
     }
@@ -177,60 +180,20 @@
         menuContentDiv.style.display = 'none';
         formSection.classList.add('hidden');
         seccionBuscador.style.display = 'none';
-        document.getElementById('adminPanel').style.display = 'none';
         
-        if (seccion === 'agregar') {
-            editandoIndex = null;
-            document.getElementById('btnGuardar').textContent = "Guardar Producto";
-            form.reset();
-            formSection.classList.remove('hidden');
-        } 
-        else if (seccion === 'editar') { seccionBuscador.style.display = 'block'; renderTable('editar'); }
-        else if (seccion === 'eliminar') { seccionBuscador.style.display = 'block'; renderTable('eliminar'); }
-        else if (seccion === 'articulos') { seccionBuscador.style.display = 'block'; renderTable('ninguna'); }
+        if (seccion === 'agregar') formSection.classList.remove('hidden');
+        else if (seccion === 'eliminar') { seccionBuscador.style.display = 'block'; renderTable(true); }
+        else if (seccion === 'articulos') { seccionBuscador.style.display = 'block'; renderTable(false); }
         else if (seccion === 'admin') document.getElementById('adminPanel').style.display = 'block';
     }
 
-    function cargarParaEditar(index) {
-        editandoIndex = index;
-        const item = inventario[index];
-        document.getElementById('unidades').value = item.unidades;
-        document.getElementById('detalle').value = item.detalle;
-        document.getElementById('precio').value = item.precio;
-        
-        document.getElementById('btnGuardar').textContent = "Actualizar Producto";
-        
-        seccionBuscador.style.display = 'none';
-        renderTable('ninguna');
-        formSection.classList.remove('hidden');
-        
-        // Hacer scroll automático al formulario
-        setTimeout(() => { formSection.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
-    }
-
-    function renderTable(modoAccion = 'ninguna') {
+    function renderTable(mostrarEliminar = false) {
         tableBody.innerHTML = '';
-        const colsAcciones = document.getElementsByClassName('col-acciones');
-        
-        if (modoAccion !== 'ninguna') {
-            for(let col of colsAcciones) col.classList.remove('hidden');
-        } else {
-            for(let col of colsAcciones) col.classList.add('hidden');
-        }
-
         inventario.forEach((item, index) => {
             const tr = document.createElement('tr');
             let color = item.unidades >= 6 ? 'stock-verde' : (item.unidades == 5 ? 'stock-amarillo' : 'stock-rojo');
             let html = `<td>${item.unidades}</td><td class="${color}">${item.detalle}</td><td>$${item.precio}</td>`;
-            
-            if (modoAccion === 'eliminar') {
-                html += `<td class="col-acciones"><button style="background-color:#dc3545;" onclick="eliminarProducto(${index})">Borrar</button></td>`;
-            } else if (modoAccion === 'editar') {
-                html += `<td class="col-acciones"><button style="background-color:#ffc107; color:black;" onclick="cargarParaEditar(${index})">Editar</button></td>`;
-            } else {
-                html += `<td class="col-acciones hidden"></td>`;
-            }
-
+            if (mostrarEliminar) html += `<td><button style="background-color:#dc3545;" onclick="eliminarProducto(${index})">Borrar</button></td>`;
             tr.innerHTML = html;
             tableBody.appendChild(tr);
         });
@@ -238,34 +201,25 @@
 
     form.addEventListener('submit', function(e) {
         e.preventDefault();
-        const nuevoItem = { 
+        inventario.push({ 
             unidades: document.getElementById('unidades').value, 
             detalle: document.getElementById('detalle').value, 
             precio: document.getElementById('precio').value 
-        };
-
-        if (editandoIndex !== null) {
-            inventario[editandoIndex] = nuevoItem; // Actualiza el existente
-            editandoIndex = null;
-        } else {
-            inventario.push(nuevoItem); // Crea uno nuevo
-        }
-
+        });
         localStorage.setItem('ferreteriaStock', JSON.stringify(inventario));
-        form.reset(); 
-        mostrarSeccion('articulos');
+        form.reset(); mostrarSeccion('articulos');
     });
 
     function eliminarProducto(index) {
         inventario.splice(index, 1);
         localStorage.setItem('ferreteriaStock', JSON.stringify(inventario));
-        renderTable('eliminar');
+        renderTable(true);
     }
 
-    renderTable('ninguna');
+    renderTable(false);
 
     // ==========================================
-    // 2. TECLADO NUMÉRICO COMPACTO
+    // 2. TECLADO NUMÉRICO VIRTUAL
     // ==========================================
     let inputActivoNum = null;
     const tecladoDOM = document.getElementById('virtual-keypad');
@@ -273,22 +227,27 @@
     function abrirTeclado(inputId) {
         inputActivoNum = document.getElementById(inputId);
         tecladoDOM.style.display = 'block';
-        
-        // Pequeño desplazamiento automático para centrar la celda y que no la tape el teclado
-        setTimeout(() => {
-            inputActivoNum.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }, 100);
     }
     
-    function teclar(valor) { if(inputActivoNum) inputActivoNum.value += valor; }
-    function borrarTecla() { if(inputActivoNum) inputActivoNum.value = inputActivoNum.value.slice(0, -1); }
-    function cerrarTeclado() { tecladoDOM.style.display = 'none'; inputActivoNum = null; }
+    function teclar(valor) {
+        if(inputActivoNum) inputActivoNum.value += valor;
+    }
+    
+    function borrarTecla() {
+        if(inputActivoNum) inputActivoNum.value = inputActivoNum.value.slice(0, -1);
+    }
+    
+    function cerrarTeclado() {
+        tecladoDOM.style.display = 'none';
+        inputActivoNum = null;
+    }
 
+    // Activar teclado numérico al hacer clic/parpadear
     document.getElementById('unidades').addEventListener('click', () => abrirTeclado('unidades'));
     document.getElementById('precio').addEventListener('click', () => abrirTeclado('precio'));
 
     // ==========================================
-    // 3. DICTADO POR VOZ
+    // 3. DICTADO POR VOZ (SpeechRecognition)
     // ==========================================
     const voiceStatus = document.getElementById('voice-status');
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -297,7 +256,9 @@
 
     if (SpeechRecognition) {
         recognition = new SpeechRecognition();
-        recognition.lang = 'es-ES'; recognition.continuous = false; recognition.interimResults = false;
+        recognition.lang = 'es-ES';
+        recognition.continuous = false;
+        recognition.interimResults = false;
 
         recognition.onstart = () => voiceStatus.style.display = 'block';
         recognition.onend = () => { voiceStatus.style.display = 'none'; inputActivoVoz = null; }
@@ -305,7 +266,10 @@
         recognition.onresult = (event) => {
             const texto = event.results[0][0].transcript;
             if (inputActivoVoz) {
+                // Elimina el punto final que suele poner la API de voz
                 inputActivoVoz.value = texto.replace(/\.$/, ''); 
+                
+                // Si es el buscador, filtrar inmediatamente la tabla
                 if(inputActivoVoz.id === 'buscador') {
                     const textoFiltro = inputActivoVoz.value.toLowerCase();
                     const filas = tableBody.getElementsByTagName('tr');
@@ -322,9 +286,12 @@
         if (recognition) {
             inputActivoVoz = document.getElementById(inputId);
             recognition.start();
-        } else alert("Tu navegador no soporta dictado por voz.");
+        } else {
+            alert("Tu navegador no soporta dictado por voz. Usa Chrome.");
+        }
     }
 
+    // Activar micrófono al hacer clic/parpadear en Detalle o Buscador
     document.getElementById('detalle').addEventListener('click', () => iniciarDictado('detalle'));
     document.getElementById('buscador').addEventListener('click', () => iniciarDictado('buscador'));
 
@@ -340,7 +307,9 @@
     let lastBlinkTime = 0, hoveredElement = null;
 
     function calcularDistancia(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y); }
-    function calcularEAR(lm, outer, inner, top, bottom) { return calcularDistancia(lm[top], lm[bottom]) / calcularDistancia(lm[outer], lm[inner]); }
+    function calcularEAR(lm, outer, inner, top, bottom) {
+        return calcularDistancia(lm[top], lm[bottom]) / calcularDistancia(lm[outer], lm[inner]);
+    }
 
     const faceMesh = new FaceMesh({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}` });
     faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
@@ -353,6 +322,7 @@
             const lm = results.multiFaceLandmarks[0];
             const nariz = lm[1];
 
+            // MOVER CURSOR
             const targetX = (window.innerWidth / 2) + ((1 - nariz.x) - 0.5) * SENSIBILIDAD_X * window.innerWidth;
             const targetY = (window.innerHeight / 2) + (nariz.y - 0.5) * SENSIBILIDAD_Y * window.innerHeight;
 
@@ -365,6 +335,7 @@
             gazeCursor.style.left = `${finalX}px`; gazeCursor.style.top = `${finalY}px`;
             gazeCursor.style.display = 'block';
 
+            // RESALTAR ELEMENTOS INTERACTIVOS
             const element = document.elementFromPoint(finalX, finalY);
             if (hoveredElement && hoveredElement !== element) hoveredElement.classList.remove('hovered-element');
             if (element && (element.tagName === 'BUTTON' || element.tagName === 'A' || element.tagName === 'INPUT')) {
@@ -372,6 +343,7 @@
                 hoveredElement = element;
             } else { hoveredElement = null; }
 
+            // DETECTAR PARPADEO Y CLIC
             const ear = (calcularEAR(lm, 33, 133, 159, 145) + calcularEAR(lm, 362, 263, 386, 374)) / 2;
             if (ear < 0.22 && (Date.now() - lastBlinkTime > 1500)) {
                 lastBlinkTime = Date.now();
@@ -396,4 +368,9 @@
             const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false });
             videoElement.srcObject = stream; await videoElement.play();
             new Camera(videoElement, { onFrame: async () => { await faceMesh.send({ image: videoElement }); }, width: 640, height: 480 }).start();
-        } catch (err) { statusEl.textContent 
+        } catch (err) { statusEl.textContent = 'Cámara bloqueada'; statusEl.style.background = '#dc3545'; }
+    }
+    window.addEventListener('DOMContentLoaded', startCamera);
+</script>
+</body>
+</html>
