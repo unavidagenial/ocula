@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>OCULA - Tablero de Comunicación Aumentativa (CAA)</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>La Caperucita Roja - Tablero de Comunicación Aumentativa (CAA)</title>
 
   <!-- MediaPipe Face Mesh & Camera Utils -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
@@ -17,7 +17,7 @@
     body {
       margin: 0;
       padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: #0f172a;
       color: #f8fafc;
       overflow: hidden;
@@ -36,7 +36,7 @@
     }
     h1 {
       margin: 0;
-      font-size: 1.2rem;
+      font-size: 1.1rem;
       font-weight: 600;
       color: #38bdf8;
     }
@@ -52,20 +52,20 @@
       color: #6ee7b7;
     }
 
-    /* Tablero CAA - 6 opciones */
+    /* Grilla de 12 tarjetas: 4 columnas x 3 filas */
     .grid-board {
       flex: 1;
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      grid-template-rows: repeat(2, 1fr);
-      gap: 16px;
-      padding: 16px;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(3, 1fr);
+      gap: 12px;
+      padding: 12px;
     }
 
     .card {
       background: #ffffff;
       color: #0f172a;
-      border-radius: 18px;
+      border-radius: 14px;
       border: 4px solid #cbd5e1;
       display: flex;
       flex-direction: column;
@@ -75,7 +75,8 @@
       cursor: pointer;
       overflow: hidden;
       transition: transform 0.15s ease, border-color 0.2s ease;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+      padding: 6px;
     }
 
     .card.hovered {
@@ -83,22 +84,21 @@
       transform: scale(1.02);
     }
 
-    .card svg {
-      width: 48%;
-      max-height: 52%;
-      margin-bottom: 8px;
+    .card img, .card svg {
+      max-height: 55%;
+      max-width: 65%;
+      object-fit: contain;
+      margin-bottom: 6px;
     }
 
     .card-label {
-      font-size: 1.35rem;
+      font-size: 0.95rem;
       font-weight: 800;
-      letter-spacing: 0.5px;
       text-transform: uppercase;
       text-align: center;
       color: #1e293b;
     }
 
-    /* Barra de progreso por fijación (Dwell Click) */
     .dwell-progress {
       position: absolute;
       bottom: 0;
@@ -109,29 +109,27 @@
       transition: width 0.05s linear;
     }
 
-    /* Puntero virtual del cursor ocular */
     #gaze-cursor {
       position: fixed;
-      width: 28px;
-      height: 28px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       background: rgba(239, 68, 68, 0.85);
-      border: 3px solid #ffffff;
+      border: 2px solid #ffffff;
       pointer-events: none;
       transform: translate(-50%, -50%);
       z-index: 9999;
-      box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);
+      box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
       display: none;
     }
 
-    /* Cámara oculta o miniatura */
     #camera-preview {
       position: fixed;
       bottom: 12px;
       right: 12px;
-      width: 140px;
-      height: 105px;
-      border-radius: 10px;
+      width: 130px;
+      height: 95px;
+      border-radius: 8px;
       border: 2px solid #38bdf8;
       object-fit: cover;
       transform: scaleX(-1);
@@ -143,86 +141,110 @@
 <body>
 
   <header>
-    <h1>OCULA — Tablero de Comunicación Asistiva</h1>
-    <div id="status" class="status-badge">Inicializando cámara y MediaPipe...</div>
+    <h1>La Caperucita Roja — Tablero CAA</h1>
+    <div id="status" class="status-badge">Iniciando cámara...</div>
   </header>
 
   <main class="grid-board" id="aac-grid">
-    <!-- 1: Necesito ayuda -->
-    <div class="card" data-phrase="Necesito ayuda">
-      <svg viewBox="0 0 100 100" fill="none" stroke="#2563eb" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M25 75 C 35 60, 45 60, 52 48 C 55 42, 48 35, 42 42" />
-        <path d="M75 25 C 65 40, 55 40, 48 52 C 45 58, 52 65, 58 58" />
-        <circle cx="50" cy="50" r="3" fill="#2563eb"/>
-      </svg>
-      <div class="card-label">Necesito ayuda</div>
+    <!-- Fila 1: Personajes -->
+    <div class="card" data-phrase="Caperucita roja">
+      <img src="https://i.pinimg.com/originals/15/3b/ef/153bef0e68858821313046d939879898.png" alt="Caperucita">
+      <div class="card-label">Caperucita roja</div>
       <div class="dwell-progress"></div>
     </div>
 
-    <!-- 2: Tengo sed -->
+    <div class="card" data-phrase="Lobo feroz">
+      <img src="https://thumbs.dreamstime.com/b/lobo-del-caperucita-rojo-133290514.jpg?w=576" alt="Lobo">
+      <div class="card-label">Lobo feroz</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <div class="card" data-phrase="Abuelita">
+      <img src="https://i.pinimg.com/736x/ec/d4/15/ecd41592c82c876acde4a13f1cdd9529.jpg" alt="Abuelita">
+      <div class="card-label">Abuelita</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <div class="card" data-phrase="Cazador">
+      <img src="https://th.bing.com/th/id/R.a242839f13b8c4c933dacdc6c93a27d0?rik=mQqfArX3UB4zqQ&riu=http%3a%2f%2frosatubes.r.o.pic.centerblog.net%2f9ffb9949.png&ehk=IuVpWW%2fle2W41u3LcigfQYlHmPLRkaSPseEcpk4hKBY%3d&risl=&pid=ImgRaw&r=0" alt="Cazador">
+      <div class="card-label">Cazador</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <!-- Fila 2: Necesidades y familia -->
     <div class="card" data-phrase="Tengo sed, por favor dame agua">
       <svg viewBox="0 0 100 100" stroke="#0284c7" stroke-width="4" fill="none" stroke-linejoin="round">
-        <path d="M28 20 L72 20 L62 85 A 4 4 0 0 1 58 89 L42 89 A 4 4 0 0 1 38 85 Z" fill="#e0f2fe"/>
-        <path d="M33 45 Q 50 40 67 45" stroke="#38bdf8" stroke-width="3" fill="none"/>
+        <path d="M28 20 L72 20 L62 85 A 4 4 0 0 1 58 89 L42 89 A 4 4 0 0 1 38 85 Z" fill="#e0f2fe"></path>
+        <path d="M33 45 Q 50 40 67 45" stroke="#38bdf8" stroke-width="3" fill="none"></path>
       </svg>
       <div class="card-label">Tengo sed</div>
       <div class="dwell-progress"></div>
     </div>
 
-    <!-- 3: Estoy feliz -->
-    <div class="card" data-phrase="Estoy feliz">
-      <svg viewBox="0 0 100 100" fill="none" stroke="#ca8a04" stroke-width="4">
-        <circle cx="50" cy="50" r="38" fill="#fef08a"/>
-        <circle cx="38" cy="42" r="4" fill="#000" stroke="none"/>
-        <circle cx="62" cy="42" r="4" fill="#000" stroke="none"/>
-        <path d="M35 60 Q 50 75 65 60" stroke="#000" stroke-linecap="round" stroke-width="4"/>
-      </svg>
-      <div class="card-label">Estoy feliz</div>
-      <div class="dwell-progress"></div>
-    </div>
-
-    <!-- 4: Necesito descansar -->
     <div class="card" data-phrase="Necesito descansar">
       <svg viewBox="0 0 100 100" fill="none" stroke="#475569" stroke-width="3" stroke-linecap="round">
-        <rect x="15" y="55" width="70" height="25" rx="4" fill="#cbd5e1"/>
-        <circle cx="35" cy="45" r="10" fill="#fed7aa" stroke="#ea580c"/>
-        <path d="M25 55 L75 55 L75 75 L25 75 Z" fill="#93c5fd"/>
-        <path d="M45 42 Q 60 30 75 42" stroke="#64748b" stroke-dasharray="2 3"/>
+        <rect x="15" y="55" width="70" height="25" rx="4" fill="#cbd5e1"></rect>
+        <circle cx="35" cy="45" r="10" fill="#fed7aa" stroke="#ea580c"></circle>
+        <path d="M25 55 L75 55 L75 75 L25 75 Z" fill="#93c5fd"></path>
+        <path d="M45 42 Q 60 30 75 42" stroke="#64748b" stroke-dasharray="2 3"></path>
       </svg>
-      <div class="card-label">Necesito descansar</div>
+      <div class="card-label">Descansar</div>
       <div class="dwell-progress"></div>
     </div>
 
-    <!-- 5: Quiero a mi familia -->
     <div class="card" data-phrase="Quiero a mi familia">
       <svg viewBox="0 0 100 100" fill="none" stroke="#16a34a" stroke-width="3" stroke-linecap="round">
-        <circle cx="32" cy="30" r="8" fill="#fed7aa"/>
-        <path d="M22 65 L22 45 C 22 40 42 40 42 45 L42 65" fill="#86efac"/>
-        <circle cx="68" cy="32" r="8" fill="#fed7aa"/>
-        <path d="M58 65 L58 47 C 58 42 78 42 78 47 L78 65" fill="#f472b6"/>
-        <circle cx="50" cy="54" r="6" fill="#fed7aa"/>
-        <path d="M44 80 L44 66 C 44 62 56 62 56 66 L56 80" fill="#fde047"/>
+        <circle cx="32" cy="30" r="8" fill="#fed7aa"></circle>
+        <path d="M22 65 L22 45 C 22 40 42 40 42 45 L42 65" fill="#86efac"></path>
+        <circle cx="68" cy="32" r="8" fill="#fed7aa"></circle>
+        <path d="M58 65 L58 47 C 58 42 78 42 78 47 L78 65" fill="#f472b6"></path>
+        <circle cx="50" cy="54" r="6" fill="#fed7aa"></circle>
+        <path d="M44 80 L44 66 C 44 62 56 62 56 66 L56 80" fill="#fde047"></path>
       </svg>
-      <div class="card-label">Quiero a mi familia</div>
+      <div class="card-label">Mi familia</div>
       <div class="dwell-progress"></div>
     </div>
 
-    <!-- 6: Tengo hambre -->
     <div class="card" data-phrase="Tengo hambre, quiero comer">
       <svg viewBox="0 0 100 100" fill="none" stroke="#ea580c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="48" cy="30" r="10" fill="#fed7aa"/>
-        <path d="M48 42 L48 78" stroke-width="4"/>
-        <path d="M48 50 L68 50 L68 44" stroke-width="3"/>
-        <circle cx="70" cy="42" r="3" fill="#ea580c"/>
-        <path d="M40 90 L48 78 L56 90" stroke-width="4"/>
+        <circle cx="48" cy="30" r="10" fill="#fed7aa"></circle>
+        <path d="M48 42 L48 78" stroke-width="4"></path>
+        <path d="M48 50 L68 50 L68 44" stroke-width="3"></path>
+        <circle cx="70" cy="42" r="3" fill="#ea580c"></circle>
+        <path d="M40 90 L48 78 L56 90" stroke-width="4"></path>
       </svg>
       <div class="card-label">Tengo hambre</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <!-- Fila 3: Emociones y Respuestas -->
+    <div class="card" data-phrase="Estoy enojado">
+      <img src="https://i.pinimg.com/1200x/f0/6d/94/f06d947e51f04483e0a6aa2f4f8832d6.jpg" alt="Enojado">
+      <div class="card-label">Enojado</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <div class="card" data-phrase="Estoy feliz">
+      <img src="https://i.pinimg.com/736x/3d/d6/ee/3dd6ee19c54365815e73cec6aa777249.jpg" alt="Feliz">
+      <div class="card-label">Feliz</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <div class="card" data-phrase="Estoy triste">
+      <img src="https://i.pinimg.com/736x/93/c4/56/93c456d0300ecda60e7d26f2aa37fd71.jpg" alt="Triste">
+      <div class="card-label">Triste</div>
+      <div class="dwell-progress"></div>
+    </div>
+
+    <div class="card" data-phrase="Sí">
+      <img src="https://thumbs.dreamstime.com/b/icono-de-marca-verificaci%C3%B3n-blanca-en-bot%C3%B3n-verde-con-marco-blanco-475662500.jpg?w=768" alt="Sí">
+      <div class="card-label">Sí</div>
       <div class="dwell-progress"></div>
     </div>
   </main>
 
   <div id="gaze-cursor"></div>
-  <video id="camera-preview" autoplay playsinline></video>
+  <video id="camera-preview" autoplay playsinline muted></video>
 
   <script>
     const statusEl = document.getElementById('status');
@@ -233,9 +255,8 @@
     let currentTarget = null;
     let dwellTimer = null;
     let dwellStart = null;
-    const DWELL_DURATION = 1400; // 1.4 segundos mirando la tarjeta para activar
+    const DWELL_DURATION = 1400;
 
-    // Síntesis de voz en español
     function hablar(texto) {
       if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
@@ -246,7 +267,6 @@
       window.speechSynthesis.speak(utterance);
     }
 
-    // Activación manual por clic/touch además del gaze-tracking
     cards.forEach(card => {
       card.addEventListener('click', () => {
         hablar(card.dataset.phrase);
@@ -255,7 +275,6 @@
       });
     });
 
-    // Lógica Dwell-to-click
     function handleGazePosition(x, y) {
       gazeCursor.style.left = `${x}px`;
       gazeCursor.style.top = `${y}px`;
@@ -304,7 +323,7 @@
       dwellTimer = requestAnimationFrame(tick);
     }
 
-    // Configuración MediaPipe FaceMesh
+    // Inicialización de MediaPipe FaceMesh
     const faceMesh = new FaceMesh({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
@@ -322,14 +341,12 @@
         statusEl.classList.add('active');
 
         const landmarks = results.multiFaceLandmarks[0];
-        // Centro del iris (Landmarks 468 izquierdo, 473 derecho)
         const leftIris = landmarks[468];
         const rightIris = landmarks[473];
 
-        const avgX = 1 - (leftIris.x + rightIris.x) / 2; // Invertido horizontal por espejo
+        const avgX = 1 - (leftIris.x + rightIris.x) / 2;
         const avgY = (leftIris.y + rightIris.y) / 2;
 
-        // Sensibilidad y mapeo a pantalla completa
         const screenX = Math.max(0, Math.min(window.innerWidth, (avgX - 0.3) * 2.5 * window.innerWidth));
         const screenY = Math.max(0, Math.min(window.innerHeight, (avgY - 0.2) * 2.2 * window.innerHeight));
 
@@ -341,18 +358,32 @@
       }
     });
 
-    // Iniciar cámara web
-    const camera = new Camera(videoElement, {
-      onFrame: async () => {
-        await faceMesh.send({ image: videoElement });
-      },
-      width: 640,
-      height: 480
-    });
-    camera.start().catch((err) => {
-      statusEl.textContent = 'Error al acceder a la cámara';
-      console.error(err);
-    });
+    // Inicialización directa con fallback nativo a getUserMedia
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 640, height: 480, facingMode: 'user' },
+          audio: false
+        });
+        videoElement.srcObject = stream;
+        await videoElement.play();
+
+        const camera = new Camera(videoElement, {
+          onFrame: async () => {
+            await faceMesh.send({ image: videoElement });
+          },
+          width: 640,
+          height: 480
+        });
+        camera.start();
+        statusEl.textContent = 'Cámara conectada';
+      } catch (err) {
+        console.error('Error de acceso a la cámara:', err);
+        statusEl.textContent = 'Error: permiso de cámara bloqueado o no disponible';
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', startCamera);
   </script>
 </body>
 </html>
