@@ -14,22 +14,27 @@
         .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         h1 { color: #333; text-align: center; }
         
-        /* Menú Desplegable */
-        .menu-container { position: relative; display: inline-block; margin-bottom: 20px; }
-        .menu-btn { background-color: #007bff; color: white; padding: 15px 25px; border: none; cursor: pointer; border-radius: 4px; font-size: 18px; font-weight: bold;}
-        .menu-content { display: none; position: absolute; background-color: #f9f9f9; min-width: 200px; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); z-index: 10; border-radius: 4px; }
-        .menu-content a { color: black; padding: 15px 20px; text-decoration: none; display: block; cursor: pointer; border-bottom: 1px solid #ddd; font-size: 16px; }
-        .menu-content a:hover, .hovered-element { background-color: #d1ecf1 !important; }
-        .menu-container:hover .menu-content { display: block; }
+        /* Menú Desplegable (Modificado para funcionar con Clic) */
+        .menu-container { position: relative; display: inline-block; margin-bottom: 20px; width: 100%; }
+        .menu-btn { background-color: #007bff; color: white; padding: 15px 25px; border: none; cursor: pointer; border-radius: 4px; font-size: 18px; font-weight: bold; width: 100%; text-align: left; }
+        .menu-content { display: none; background-color: #f9f9f9; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); border-radius: 4px; margin-top: 5px; }
+        .menu-content a { color: black; padding: 15px 20px; text-decoration: none; display: block; cursor: pointer; border-bottom: 1px solid #ddd; font-size: 18px; }
+        
+        /* Efecto Visual cuando la nariz apunta al elemento */
+        .hovered-element { background-color: #ffeeba !important; outline: 3px solid #ffc107 !important; border-radius: 4px; }
 
         .form-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .form-group.hidden { display: none; }
-        input { flex: 1; padding: 15px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
-        button { padding: 15px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; transition: 0.3s; }
-        button:hover { background-color: #218838; }
+        input { flex: 1; padding: 15px; border: 2px solid #ccc; border-radius: 4px; font-size: 18px; }
+        
+        /* Buscador */
+        .buscador-container { margin-bottom: 15px; }
+        #buscador { width: 100%; padding: 15px; font-size: 18px; border: 2px solid #17a2b8; border-radius: 4px; box-sizing: border-box; }
+
+        button { padding: 15px 20px; background-color: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 18px; font-weight: bold; transition: 0.3s; }
         
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #ddd; font-size: 16px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #ddd; font-size: 18px; }
         th { background-color: #f8f9fa; font-weight: bold; color: #333; }
         
         /* Sistema de Semáforo */
@@ -45,17 +50,17 @@
         /* Elementos de MediaPipe (Cámara y Cursor) */
         #gaze-cursor {
             position: fixed;
-            width: 30px;
-            height: 30px;
+            width: 35px;
+            height: 35px;
             border-radius: 50%;
             background: rgba(239, 68, 68, 0.85);
-            border: 3px solid #ffffff;
+            border: 4px solid #ffffff;
             pointer-events: none; /* Crucial para que el clic traspase el punto rojo */
             transform: translate(-50%, -50%);
             z-index: 9999;
-            box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);
+            box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
             display: none;
-            transition: background-color 0.2s;
+            transition: background-color 0.2s, transform 0.1s;
         }
 
         #camera-preview {
@@ -78,9 +83,10 @@
             right: 12px;
             background: #333;
             color: #fff;
-            padding: 5px 10px;
+            padding: 8px 12px;
             border-radius: 4px;
-            font-size: 12px;
+            font-size: 14px;
+            font-weight: bold;
             z-index: 1000;
         }
     </style>
@@ -98,16 +104,21 @@
 </div>
 
 <div class="container" id="mainApp">
-    <h1>🛒 Control de Stock</h1>
+    <h1>🔗 Control de Stock</h1>
     
     <div class="menu-container">
-        <button class="menu-btn" id="menuPrincipalBtn">Menú ☰</button>
-        <div class="menu-content">
-            <a onclick="mostrarSeccion('articulos')">Ver Artículos</a>
-            <a onclick="mostrarSeccion('agregar')">Agregar Producto</a>
-            <a onclick="mostrarSeccion('eliminar')">Modo Eliminar</a>
-            <a onclick="mostrarSeccion('admin')">Super admin</a>
+        <button class="menu-btn" id="menuPrincipalBtn" onclick="toggleMenu()">Menú Principal ☰ (Parpadea aquí)</button>
+        <div class="menu-content" id="menuContentDiv">
+            <a onclick="mostrarSeccion('articulos')">👁️ Ver Artículos (Tabla)</a>
+            <a onclick="mostrarSeccion('agregar')">➕ Agregar Producto</a>
+            <a onclick="mostrarSeccion('eliminar')">🗑️ Modo Eliminar</a>
+            <a onclick="mostrarSeccion('admin')">⚙️ Super admin</a>
         </div>
+    </div>
+
+    <!-- Buscador (Solo visible en la tabla) -->
+    <div class="buscador-container" id="seccionBuscador">
+        <input type="text" id="buscador" placeholder="🔍 Buscar por detalle del producto..." onkeyup="filtrarTabla()">
     </div>
 
     <!-- Formulario de Agregar -->
@@ -151,46 +162,64 @@
 
 <script>
     // ==========================================
-    // LÓGICA DE LA FERRETERÍA (INVENTARIO)
+    // 1. LÓGICA DE LA FERRETERÍA E INVENTARIO
     // ==========================================
     const form = document.getElementById('stockForm');
     const tableBody = document.getElementById('tableBody');
     const formSection = document.getElementById('stockForm');
     const adminPanel = document.getElementById('adminPanel');
     const colsEliminar = document.getElementsByClassName('col-eliminar');
-    const lockedScreen = document.getElementById('lockedScreen');
-    const mainApp = document.getElementById('mainApp');
+    const seccionBuscador = document.getElementById('seccionBuscador');
+    const menuContentDiv = document.getElementById('menuContentDiv');
     
     let inventario = JSON.parse(localStorage.getItem('ferreteriaStock')) || [];
-    let timerExpiration = localStorage.getItem('timerExpiration');
-
-    function checkTimer() {
-        if (!timerExpiration) return;
-        const now = new Date().getTime();
-        const expirationTime = parseInt(timerExpiration);
-        if (now >= expirationTime) {
-            lockedScreen.style.display = 'block';
-            mainApp.style.display = 'none';
+    
+    // Función para abrir y cerrar el menú manualmente (Para el clic con parpadeo)
+    function toggleMenu() {
+        if (menuContentDiv.style.display === 'block') {
+            menuContentDiv.style.display = 'none';
         } else {
-            const display = document.getElementById('timeLeftDisplay');
-            if (display) display.innerText = Math.floor((expirationTime - now) / 1000);
+            menuContentDiv.style.display = 'block';
         }
     }
-    setInterval(checkTimer, 1000);
-    checkTimer();
 
     function mostrarSeccion(seccion) {
+        menuContentDiv.style.display = 'none'; // Cierra el menú al elegir una opción
         formSection.classList.add('hidden');
         adminPanel.style.display = 'none';
+        seccionBuscador.style.display = 'none'; // Oculta buscador por defecto
         for(let col of colsEliminar) col.classList.add('hidden');
         
-        if (seccion === 'agregar') formSection.classList.remove('hidden');
-        else if (seccion === 'eliminar') {
+        if (seccion === 'agregar') {
+            formSection.classList.remove('hidden');
+        } else if (seccion === 'eliminar') {
             for(let col of colsEliminar) col.classList.remove('hidden');
+            seccionBuscador.style.display = 'block';
             renderTable(true);
+        } else if (seccion === 'admin') {
+            adminPanel.style.display = 'block';
+        } else if (seccion === 'articulos') {
+            seccionBuscador.style.display = 'block';
+            renderTable(false);
         }
-        else if (seccion === 'admin') adminPanel.style.display = 'block';
-        else if (seccion === 'articulos') renderTable(false);
+    }
+
+    // Buscador en tiempo real
+    function filtrarTabla() {
+        const input = document.getElementById('buscador').value.toLowerCase();
+        const filas = tableBody.getElementsByTagName('tr');
+        
+        for (let i = 0; i < filas.length; i++) {
+            const celdaDetalle = filas[i].getElementsByTagName('td')[1];
+            if (celdaDetalle) {
+                const texto = celdaDetalle.textContent || celdaDetalle.innerText;
+                if (texto.toLowerCase().indexOf(input) > -1) {
+                    filas[i].style.display = "";
+                } else {
+                    filas[i].style.display = "none";
+                }
+            }
+        }
     }
 
     function obtenerClaseSemaforo(stock) {
@@ -220,7 +249,6 @@
         inventario.push({ unidades, detalle, precio });
         localStorage.setItem('ferreteriaStock', JSON.stringify(inventario));
         form.reset();
-        renderTable(false);
         mostrarSeccion('articulos');
     });
 
@@ -230,51 +258,28 @@
         renderTable(true);
     }
 
-    function loginAdmin() {
-        if (document.getElementById('adminUser').value === 'admin' && document.getElementById('adminPass').value === '1234') {
-            document.getElementById('timerConfig').style.display = 'block';
-            document.getElementById('adminUser').style.display = 'none';
-            document.getElementById('adminPass').style.display = 'none';
-            event.target.style.display = 'none';
-        } else alert('Credenciales incorrectas');
-    }
-
-    function configurarTimer() {
-        const dias = document.getElementById('diasTimer').value;
-        if (dias > 0) {
-            timerExpiration = new Date().getTime() + (dias * 24 * 60 * 60 * 1000);
-            localStorage.setItem('timerExpiration', timerExpiration);
-            alert(`Temporizador configurado para ${dias} días.`);
-            lockedScreen.style.display = 'none';
-            mainApp.style.display = 'block';
-        }
-    }
-
-    renderTable(false);
+    renderTable(false); // Cargar tabla inicial
 
     // ==========================================
-    // LÓGICA DE MEDIAPIPE (SEGUIMIENTO Y CLIC POR PARPADEO)
+    // 2. LÓGICA DE MEDIAPIPE (NARIZ Y PARPADEO)
     // ==========================================
     const gazeCursor = document.getElementById('gaze-cursor');
     const videoElement = document.getElementById('camera-preview');
     const statusEl = document.getElementById('cam-status');
 
-    // Configuración de sensibilidad
+    // Configuración de movimiento
     const SENSIBILIDAD_X = 5.2; 
     const SENSIBILIDAD_Y = 4.8; 
     const FACTOR_SUAVIZADO = 0.22;
     let cursorX = window.innerWidth / 2;
     let cursorY = window.innerHeight / 2;
 
-    // Variables para el parpadeo
+    // Variables para el clic por parpadeo
     let lastBlinkTime = 0;
     let hoveredElement = null;
 
-    // Función matemática para calcular si el ojo está cerrado (Eye Aspect Ratio - EAR)
-    function calcularDistancia(p1, p2) {
-        return Math.hypot(p1.x - p2.x, p1.y - p2.y);
-    }
-
+    function calcularDistancia(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y); }
+    
     function calcularEAR(landmarks, outer, inner, top, bottom) {
         let alto = calcularDistancia(landmarks[top], landmarks[bottom]);
         let ancho = calcularDistancia(landmarks[outer], landmarks[inner]);
@@ -294,13 +299,13 @@
 
     faceMesh.onResults((results) => {
         if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-            statusEl.textContent = 'Rastreo activo (Nariz + Parpadeo)';
+            statusEl.textContent = 'Rastreo OK (Mueve nariz, Parpadea para clic)';
             statusEl.style.background = '#28a745';
             
             const landmarks = results.multiFaceLandmarks[0];
             const nariz = landmarks[1];
 
-            // 1. MOVER EL CURSOR CON LA NARIZ
+            // MOVER CURSOR
             const normX = 1 - nariz.x;
             const targetX = (window.innerWidth / 2) + (normX - 0.5) * SENSIBILIDAD_X * window.innerWidth;
             const targetY = (window.innerHeight / 2) + (nariz.y - 0.5) * SENSIBILIDAD_Y * window.innerHeight;
@@ -315,7 +320,7 @@
             gazeCursor.style.top = `${finalY}px`;
             gazeCursor.style.display = 'block';
 
-            // Resaltar elemento debajo del cursor
+            // RESALTAR ELEMENTO APUNTADO
             const element = document.elementFromPoint(finalX, finalY);
             if (hoveredElement && hoveredElement !== element) {
                 hoveredElement.classList.remove('hovered-element');
@@ -327,28 +332,30 @@
                 hoveredElement = null;
             }
 
-            // 2. DETECTAR PARPADEO PARA HACER CLIC
-            // Ojo izquierdo (índices: exterior 33, interior 133, arriba 159, abajo 145)
+            // DETECCIÓN DE PARPADEO (AJUSTADO PARA MAYOR SENSIBILIDAD)
             const earIzquierdo = calcularEAR(landmarks, 33, 133, 159, 145);
-            // Ojo derecho (índices: interior 362, exterior 263, arriba 386, abajo 374)
             const earDerecho = calcularEAR(landmarks, 362, 263, 386, 374);
-            
             const promedioEAR = (earIzquierdo + earDerecho) / 2;
 
-            // Umbral de parpadeo (si baja de 0.20, los ojos están cerrados)
-            if (promedioEAR < 0.20 && (Date.now() - lastBlinkTime > 1500)) {
+            // Umbral subido a 0.22 para detectar más fácil el guiño/parpadeo
+            if (promedioEAR < 0.22 && (Date.now() - lastBlinkTime > 1500)) {
                 lastBlinkTime = Date.now();
                 
-                // Efecto visual de clic
-                gazeCursor.style.backgroundColor = '#ffeb3b';
-                setTimeout(() => gazeCursor.style.backgroundColor = 'rgba(239, 68, 68, 0.85)', 300);
+                // Efecto visual al parpadear
+                gazeCursor.style.backgroundColor = '#ffc107';
+                gazeCursor.style.transform = 'translate(-50%, -50%) scale(1.5)';
+                
+                setTimeout(() => {
+                    gazeCursor.style.backgroundColor = 'rgba(239, 68, 68, 0.85)';
+                    gazeCursor.style.transform = 'translate(-50%, -50%) scale(1)';
+                }, 300);
 
-                // Ejecutar el clic en el elemento debajo del cursor
+                // EJECUTAR CLIC VIRTUAL
                 if (element) {
                     if (element.tagName === 'INPUT') {
-                        element.focus(); // Si es un campo de texto, poner el cursor para escribir
+                        element.focus(); // Entrar a la caja de texto
                     } else {
-                        element.click(); // Si es botón o enlace, hacer clic
+                        element.click(); // Hacer clic en el botón o enlace
                     }
                 }
             }
@@ -369,15 +376,11 @@
             await videoElement.play();
 
             const camera = new Camera(videoElement, {
-                onFrame: async () => {
-                    await faceMesh.send({ image: videoElement });
-                },
-                width: 640,
-                height: 480
+                onFrame: async () => { await faceMesh.send({ image: videoElement }); },
+                width: 640, height: 480
             });
             camera.start();
         } catch (err) {
-            console.error(err);
             statusEl.textContent = 'Permiso de cámara denegado';
             statusEl.style.background = '#dc3545';
         }
