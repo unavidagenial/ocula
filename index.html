@@ -10,18 +10,19 @@
     <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
 
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; padding-bottom: 250px; }
         .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        h1 { color: #333; text-align: center; }
+        h1 { color: #333; text-align: center; margin-top: 0; }
         
-        /* Menú Desplegable (Modificado para funcionar con Clic) */
+        /* Menú Desplegable */
         .menu-container { position: relative; display: inline-block; margin-bottom: 20px; width: 100%; }
         .menu-btn { background-color: #007bff; color: white; padding: 15px 25px; border: none; cursor: pointer; border-radius: 4px; font-size: 18px; font-weight: bold; width: 100%; text-align: left; }
         .menu-content { display: none; background-color: #f9f9f9; box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2); border-radius: 4px; margin-top: 5px; }
         .menu-content a { color: black; padding: 15px 20px; text-decoration: none; display: block; cursor: pointer; border-bottom: 1px solid #ddd; font-size: 18px; }
         
-        /* Efecto Visual cuando la nariz apunta al elemento */
+        /* Efecto Visual de Selección */
         .hovered-element { background-color: #ffeeba !important; outline: 3px solid #ffc107 !important; border-radius: 4px; }
+        input:focus { outline: 4px solid #28a745; background-color: #e9f7ef; }
 
         .form-group { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
         .form-group.hidden { display: none; }
@@ -44,51 +45,52 @@
 
         /* Super Admin */
         #adminPanel { display: none; margin-top: 20px; padding: 20px; background-color: #eee; border-radius: 8px; }
-        .locked-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); color: white; text-align: center; padding-top: 20%; z-index: 1000; }
-        .locked-screen h2 { font-size: 3em; color: #dc3545; }
 
         /* Elementos de MediaPipe (Cámara y Cursor) */
         #gaze-cursor {
-            position: fixed;
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            background: rgba(239, 68, 68, 0.85);
-            border: 4px solid #ffffff;
-            pointer-events: none; /* Crucial para que el clic traspase el punto rojo */
-            transform: translate(-50%, -50%);
-            z-index: 9999;
-            box-shadow: 0 0 12px rgba(0, 0, 0, 0.5);
-            display: none;
+            position: fixed; width: 35px; height: 35px; border-radius: 50%;
+            background: rgba(239, 68, 68, 0.85); border: 4px solid #ffffff;
+            pointer-events: none; transform: translate(-50%, -50%);
+            z-index: 9999; box-shadow: 0 0 12px rgba(0, 0, 0, 0.5); display: none;
             transition: background-color 0.2s, transform 0.1s;
         }
 
         #camera-preview {
-            position: fixed;
-            bottom: 12px;
-            right: 12px;
-            width: 150px;
-            height: 110px;
-            border-radius: 8px;
-            border: 2px solid #007bff;
-            object-fit: cover;
-            transform: scaleX(-1);
-            z-index: 1000;
-            background: #000;
+            position: fixed; top: 12px; right: 12px; width: 130px; height: 90px;
+            border-radius: 8px; border: 2px solid #007bff; object-fit: cover;
+            transform: scaleX(-1); z-index: 1000; background: #000;
         }
 
         #cam-status {
-            position: fixed;
-            bottom: 130px;
-            right: 12px;
-            background: #333;
-            color: #fff;
-            padding: 8px 12px;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: bold;
-            z-index: 1000;
+            position: fixed; top: 110px; right: 12px; background: #333; color: #fff;
+            padding: 8px 12px; border-radius: 4px; font-size: 12px; font-weight: bold; z-index: 1000;
         }
+
+        /* --- NUEVO: TECLADO NUMÉRICO --- */
+        #virtual-keypad {
+            display: none; position: fixed; bottom: 0; left: 0; width: 100%;
+            background: #e9ecef; padding: 15px; box-shadow: 0 -4px 15px rgba(0,0,0,0.2);
+            z-index: 5000; box-sizing: border-box; text-align: center;
+        }
+        .keypad-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 400px; margin: auto;
+        }
+        .key-btn {
+            background: #fff; border: 2px solid #ced4da; border-radius: 8px; padding: 20px;
+            font-size: 24px; font-weight: bold; color: #333; cursor: pointer;
+        }
+        .key-btn:active, .hovered-element.key-btn { background: #ffeeba !important; outline: 3px solid #ffc107 !important; }
+        .key-action { background: #6c757d; color: white; border-color: #5a6268; }
+        .key-close { background: #dc3545; color: white; border-color: #c82333; grid-column: span 3; }
+
+        /* --- NUEVO: ESTADO DE VOZ --- */
+        #voice-status {
+            display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8); color: white; padding: 30px; border-radius: 12px;
+            font-size: 24px; font-weight: bold; text-align: center; z-index: 6000;
+        }
+        .mic-icon { font-size: 40px; margin-bottom: 10px; color: #ffeb3b; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.2); } 100% { transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -97,17 +99,36 @@
 <div id="gaze-cursor"></div>
 <video id="camera-preview" autoplay playsinline muted></video>
 
-<!-- Pantalla de Bloqueo -->
-<div id="lockedScreen" class="locked-screen">
-    <h2>SISTEMA BLOQUEADO</h2>
-    <p>El temporizador de pagos ha llegado a 0. Contacte al administrador.</p>
+<!-- Indicador de Dictado por Voz -->
+<div id="voice-status">
+    <div class="mic-icon">🎤</div>
+    <div>Escuchando...<br><span style="font-size:16px;font-weight:normal;">Habla ahora para escribir</span></div>
+</div>
+
+<!-- Teclado Virtual Numérico -->
+<div id="virtual-keypad">
+    <div class="keypad-grid">
+        <button class="key-btn" onclick="teclar('1')">1</button>
+        <button class="key-btn" onclick="teclar('2')">2</button>
+        <button class="key-btn" onclick="teclar('3')">3</button>
+        <button class="key-btn" onclick="teclar('4')">4</button>
+        <button class="key-btn" onclick="teclar('5')">5</button>
+        <button class="key-btn" onclick="teclar('6')">6</button>
+        <button class="key-btn" onclick="teclar('7')">7</button>
+        <button class="key-btn" onclick="teclar('8')">8</button>
+        <button class="key-btn" onclick="teclar('9')">9</button>
+        <button class="key-btn key-action" onclick="borrarTecla()">⌫</button>
+        <button class="key-btn" onclick="teclar('0')">0</button>
+        <button class="key-btn key-action" onclick="teclar('.')">.</button>
+        <button class="key-btn key-close" onclick="cerrarTeclado()">Cerrar / Listo</button>
+    </div>
 </div>
 
 <div class="container" id="mainApp">
-    <h1>🔗 Control de Stock</h1>
+    <h1>🛒 Control de Stock</h1>
     
     <div class="menu-container">
-        <button class="menu-btn" id="menuPrincipalBtn" onclick="toggleMenu()">Menú Principal ☰ (Parpadea aquí)</button>
+        <button class="menu-btn" id="menuPrincipalBtn" onclick="toggleMenu()">☰ Menú Principal (Parpadea aquí)</button>
         <div class="menu-content" id="menuContentDiv">
             <a onclick="mostrarSeccion('articulos')">👁️ Ver Artículos (Tabla)</a>
             <a onclick="mostrarSeccion('agregar')">➕ Agregar Producto</a>
@@ -116,140 +137,77 @@
         </div>
     </div>
 
-    <!-- Buscador (Solo visible en la tabla) -->
     <div class="buscador-container" id="seccionBuscador">
-        <input type="text" id="buscador" placeholder="🔍 Buscar por detalle del producto..." onkeyup="filtrarTabla()">
+        <input type="text" id="buscador" placeholder="🔍 Buscar producto (Parpadea para dictar)...">
     </div>
 
-    <!-- Formulario de Agregar -->
     <form class="form-group hidden" id="stockForm">
-        <input type="number" id="unidades" placeholder="Unidades" required min="0">
-        <input type="text" id="detalle" placeholder="Detalle del producto" required>
-        <input type="number" id="precio" placeholder="Precio ($)" required step="0.01" min="0">
+        <input type="number" id="unidades" placeholder="Unidades (Parpadea para teclado)" required min="0" readonly>
+        <input type="text" id="detalle" placeholder="Detalle (Parpadea para dictar)" required readonly>
+        <input type="number" id="precio" placeholder="Precio ($) (Parpadea para teclado)" required step="0.01" min="0" readonly>
         <button type="submit" id="btnGuardar">Guardar Producto</button>
     </form>
 
-    <!-- Panel de Super Admin -->
     <div id="adminPanel">
         <h3>Acceso Super Admin</h3>
-        <input type="text" id="adminUser" placeholder="Usuario">
-        <input type="password" id="adminPass" placeholder="Contraseña">
-        <button onclick="loginAdmin()">Ingresar</button>
-        
-        <div id="timerConfig" style="display:none; margin-top:15px;">
-            <h4>Configurar Temporizador</h4>
-            <p>Tiempo restante: <span id="timeLeftDisplay"></span> seg</p>
-            <input type="number" id="diasTimer" placeholder="Días para el bloqueo" min="1">
-            <button onclick="configurarTimer()">Establecer Timer</button>
-        </div>
+        <p>Las funciones avanzadas están ocultas temporalmente en esta vista simplificada.</p>
     </div>
 
-    <!-- Tabla de Artículos -->
     <table id="stockTable">
         <thead>
-            <tr>
-                <th>Unidades</th>
-                <th>Detalle</th>
-                <th>Precio ($)</th>
-                <th class="col-eliminar hidden">Acción</th>
-            </tr>
+            <tr><th>Unidades</th><th>Detalle</th><th>Precio ($)</th><th class="col-eliminar hidden">Acción</th></tr>
         </thead>
-        <tbody id="tableBody">
-            <!-- Productos -->
-        </tbody>
+        <tbody id="tableBody"></tbody>
     </table>
 </div>
 
 <script>
     // ==========================================
-    // 1. LÓGICA DE LA FERRETERÍA E INVENTARIO
+    // 1. SISTEMA DE FERRETERÍA
     // ==========================================
     const form = document.getElementById('stockForm');
     const tableBody = document.getElementById('tableBody');
     const formSection = document.getElementById('stockForm');
-    const adminPanel = document.getElementById('adminPanel');
-    const colsEliminar = document.getElementsByClassName('col-eliminar');
     const seccionBuscador = document.getElementById('seccionBuscador');
     const menuContentDiv = document.getElementById('menuContentDiv');
-    
     let inventario = JSON.parse(localStorage.getItem('ferreteriaStock')) || [];
     
-    // Función para abrir y cerrar el menú manualmente (Para el clic con parpadeo)
     function toggleMenu() {
-        if (menuContentDiv.style.display === 'block') {
-            menuContentDiv.style.display = 'none';
-        } else {
-            menuContentDiv.style.display = 'block';
-        }
+        menuContentDiv.style.display = menuContentDiv.style.display === 'block' ? 'none' : 'block';
     }
 
     function mostrarSeccion(seccion) {
-        menuContentDiv.style.display = 'none'; // Cierra el menú al elegir una opción
+        menuContentDiv.style.display = 'none';
         formSection.classList.add('hidden');
-        adminPanel.style.display = 'none';
-        seccionBuscador.style.display = 'none'; // Oculta buscador por defecto
-        for(let col of colsEliminar) col.classList.add('hidden');
+        seccionBuscador.style.display = 'none';
         
-        if (seccion === 'agregar') {
-            formSection.classList.remove('hidden');
-        } else if (seccion === 'eliminar') {
-            for(let col of colsEliminar) col.classList.remove('hidden');
-            seccionBuscador.style.display = 'block';
-            renderTable(true);
-        } else if (seccion === 'admin') {
-            adminPanel.style.display = 'block';
-        } else if (seccion === 'articulos') {
-            seccionBuscador.style.display = 'block';
-            renderTable(false);
-        }
-    }
-
-    // Buscador en tiempo real
-    function filtrarTabla() {
-        const input = document.getElementById('buscador').value.toLowerCase();
-        const filas = tableBody.getElementsByTagName('tr');
-        
-        for (let i = 0; i < filas.length; i++) {
-            const celdaDetalle = filas[i].getElementsByTagName('td')[1];
-            if (celdaDetalle) {
-                const texto = celdaDetalle.textContent || celdaDetalle.innerText;
-                if (texto.toLowerCase().indexOf(input) > -1) {
-                    filas[i].style.display = "";
-                } else {
-                    filas[i].style.display = "none";
-                }
-            }
-        }
-    }
-
-    function obtenerClaseSemaforo(stock) {
-        const uni = parseInt(stock);
-        if (uni >= 6) return 'stock-verde';
-        if (uni === 5) return 'stock-amarillo';
-        return 'stock-rojo';
+        if (seccion === 'agregar') formSection.classList.remove('hidden');
+        else if (seccion === 'eliminar') { seccionBuscador.style.display = 'block'; renderTable(true); }
+        else if (seccion === 'articulos') { seccionBuscador.style.display = 'block'; renderTable(false); }
+        else if (seccion === 'admin') document.getElementById('adminPanel').style.display = 'block';
     }
 
     function renderTable(mostrarEliminar = false) {
         tableBody.innerHTML = '';
         inventario.forEach((item, index) => {
-            const row = document.createElement('tr');
-            let html = `<td>${item.unidades}</td><td class="${obtenerClaseSemaforo(item.unidades)}">${item.detalle}</td><td>$${item.precio}</td>`;
-            if (mostrarEliminar) html += `<td class="col-eliminar"><button style="background-color:#dc3545;" onclick="eliminarProducto(${index})">Borrar</button></td>`;
-            else html += `<td class="col-eliminar hidden"></td>`;
-            row.innerHTML = html;
-            tableBody.appendChild(row);
+            const tr = document.createElement('tr');
+            let color = item.unidades >= 6 ? 'stock-verde' : (item.unidades == 5 ? 'stock-amarillo' : 'stock-rojo');
+            let html = `<td>${item.unidades}</td><td class="${color}">${item.detalle}</td><td>$${item.precio}</td>`;
+            if (mostrarEliminar) html += `<td><button style="background-color:#dc3545;" onclick="eliminarProducto(${index})">Borrar</button></td>`;
+            tr.innerHTML = html;
+            tableBody.appendChild(tr);
         });
     }
 
     form.addEventListener('submit', function(e) {
         e.preventDefault();
-        const unidades = document.getElementById('unidades').value;
-        const detalle = document.getElementById('detalle').value;
-        const precio = document.getElementById('precio').value;
-        inventario.push({ unidades, detalle, precio });
+        inventario.push({ 
+            unidades: document.getElementById('unidades').value, 
+            detalle: document.getElementById('detalle').value, 
+            precio: document.getElementById('precio').value 
+        });
         localStorage.setItem('ferreteriaStock', JSON.stringify(inventario));
-        form.reset();
-        mostrarSeccion('articulos');
+        form.reset(); mostrarSeccion('articulos');
     });
 
     function eliminarProducto(index) {
@@ -258,136 +216,161 @@
         renderTable(true);
     }
 
-    renderTable(false); // Cargar tabla inicial
+    renderTable(false);
 
     // ==========================================
-    // 2. LÓGICA DE MEDIAPIPE (NARIZ Y PARPADEO)
+    // 2. TECLADO NUMÉRICO VIRTUAL
+    // ==========================================
+    let inputActivoNum = null;
+    const tecladoDOM = document.getElementById('virtual-keypad');
+
+    function abrirTeclado(inputId) {
+        inputActivoNum = document.getElementById(inputId);
+        tecladoDOM.style.display = 'block';
+    }
+    
+    function teclar(valor) {
+        if(inputActivoNum) inputActivoNum.value += valor;
+    }
+    
+    function borrarTecla() {
+        if(inputActivoNum) inputActivoNum.value = inputActivoNum.value.slice(0, -1);
+    }
+    
+    function cerrarTeclado() {
+        tecladoDOM.style.display = 'none';
+        inputActivoNum = null;
+    }
+
+    // Activar teclado numérico al hacer clic/parpadear
+    document.getElementById('unidades').addEventListener('click', () => abrirTeclado('unidades'));
+    document.getElementById('precio').addEventListener('click', () => abrirTeclado('precio'));
+
+    // ==========================================
+    // 3. DICTADO POR VOZ (SpeechRecognition)
+    // ==========================================
+    const voiceStatus = document.getElementById('voice-status');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let inputActivoVoz = null;
+
+    if (SpeechRecognition) {
+        recognition = new SpeechRecognition();
+        recognition.lang = 'es-ES';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+
+        recognition.onstart = () => voiceStatus.style.display = 'block';
+        recognition.onend = () => { voiceStatus.style.display = 'none'; inputActivoVoz = null; }
+        
+        recognition.onresult = (event) => {
+            const texto = event.results[0][0].transcript;
+            if (inputActivoVoz) {
+                // Elimina el punto final que suele poner la API de voz
+                inputActivoVoz.value = texto.replace(/\.$/, ''); 
+                
+                // Si es el buscador, filtrar inmediatamente la tabla
+                if(inputActivoVoz.id === 'buscador') {
+                    const textoFiltro = inputActivoVoz.value.toLowerCase();
+                    const filas = tableBody.getElementsByTagName('tr');
+                    for (let i = 0; i < filas.length; i++) {
+                        const td = filas[i].getElementsByTagName('td')[1];
+                        if (td) filas[i].style.display = (td.textContent.toLowerCase().indexOf(textoFiltro) > -1) ? "" : "none";
+                    }
+                }
+            }
+        };
+    }
+
+    function iniciarDictado(inputId) {
+        if (recognition) {
+            inputActivoVoz = document.getElementById(inputId);
+            recognition.start();
+        } else {
+            alert("Tu navegador no soporta dictado por voz. Usa Chrome.");
+        }
+    }
+
+    // Activar micrófono al hacer clic/parpadear en Detalle o Buscador
+    document.getElementById('detalle').addEventListener('click', () => iniciarDictado('detalle'));
+    document.getElementById('buscador').addEventListener('click', () => iniciarDictado('buscador'));
+
+    // ==========================================
+    // 4. MEDIAPIPE (SEGUIMIENTO Y PARPADEO)
     // ==========================================
     const gazeCursor = document.getElementById('gaze-cursor');
     const videoElement = document.getElementById('camera-preview');
     const statusEl = document.getElementById('cam-status');
 
-    // Configuración de movimiento
-    const SENSIBILIDAD_X = 5.2; 
-    const SENSIBILIDAD_Y = 4.8; 
-    const FACTOR_SUAVIZADO = 0.22;
-    let cursorX = window.innerWidth / 2;
-    let cursorY = window.innerHeight / 2;
-
-    // Variables para el clic por parpadeo
-    let lastBlinkTime = 0;
-    let hoveredElement = null;
+    const SENSIBILIDAD_X = 5.2, SENSIBILIDAD_Y = 4.8, FACTOR_SUAVIZADO = 0.22;
+    let cursorX = window.innerWidth / 2, cursorY = window.innerHeight / 2;
+    let lastBlinkTime = 0, hoveredElement = null;
 
     function calcularDistancia(p1, p2) { return Math.hypot(p1.x - p2.x, p1.y - p2.y); }
-    
-    function calcularEAR(landmarks, outer, inner, top, bottom) {
-        let alto = calcularDistancia(landmarks[top], landmarks[bottom]);
-        let ancho = calcularDistancia(landmarks[outer], landmarks[inner]);
-        return alto / ancho;
+    function calcularEAR(lm, outer, inner, top, bottom) {
+        return calcularDistancia(lm[top], lm[bottom]) / calcularDistancia(lm[outer], lm[inner]);
     }
 
-    const faceMesh = new FaceMesh({
-        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
-    });
-
-    faceMesh.setOptions({
-        maxNumFaces: 1,
-        refineLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-    });
+    const faceMesh = new FaceMesh({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${f}` });
+    faceMesh.setOptions({ maxNumFaces: 1, refineLandmarks: true, minDetectionConfidence: 0.5, minTrackingConfidence: 0.5 });
 
     faceMesh.onResults((results) => {
         if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-            statusEl.textContent = 'Rastreo OK (Mueve nariz, Parpadea para clic)';
+            statusEl.textContent = 'Rastreo OK (Parpadea para Clic)';
             statusEl.style.background = '#28a745';
             
-            const landmarks = results.multiFaceLandmarks[0];
-            const nariz = landmarks[1];
+            const lm = results.multiFaceLandmarks[0];
+            const nariz = lm[1];
 
             // MOVER CURSOR
-            const normX = 1 - nariz.x;
-            const targetX = (window.innerWidth / 2) + (normX - 0.5) * SENSIBILIDAD_X * window.innerWidth;
+            const targetX = (window.innerWidth / 2) + ((1 - nariz.x) - 0.5) * SENSIBILIDAD_X * window.innerWidth;
             const targetY = (window.innerHeight / 2) + (nariz.y - 0.5) * SENSIBILIDAD_Y * window.innerHeight;
 
             cursorX += (targetX - cursorX) * FACTOR_SUAVIZADO;
             cursorY += (targetY - cursorY) * FACTOR_SUAVIZADO;
-
+            
             const finalX = Math.max(0, Math.min(window.innerWidth, cursorX));
             const finalY = Math.max(0, Math.min(window.innerHeight, cursorY));
 
-            gazeCursor.style.left = `${finalX}px`;
-            gazeCursor.style.top = `${finalY}px`;
+            gazeCursor.style.left = `${finalX}px`; gazeCursor.style.top = `${finalY}px`;
             gazeCursor.style.display = 'block';
 
-            // RESALTAR ELEMENTO APUNTADO
+            // RESALTAR ELEMENTOS INTERACTIVOS
             const element = document.elementFromPoint(finalX, finalY);
-            if (hoveredElement && hoveredElement !== element) {
-                hoveredElement.classList.remove('hovered-element');
-            }
+            if (hoveredElement && hoveredElement !== element) hoveredElement.classList.remove('hovered-element');
             if (element && (element.tagName === 'BUTTON' || element.tagName === 'A' || element.tagName === 'INPUT')) {
                 element.classList.add('hovered-element');
                 hoveredElement = element;
-            } else {
-                hoveredElement = null;
-            }
+            } else { hoveredElement = null; }
 
-            // DETECCIÓN DE PARPADEO (AJUSTADO PARA MAYOR SENSIBILIDAD)
-            const earIzquierdo = calcularEAR(landmarks, 33, 133, 159, 145);
-            const earDerecho = calcularEAR(landmarks, 362, 263, 386, 374);
-            const promedioEAR = (earIzquierdo + earDerecho) / 2;
-
-            // Umbral subido a 0.22 para detectar más fácil el guiño/parpadeo
-            if (promedioEAR < 0.22 && (Date.now() - lastBlinkTime > 1500)) {
+            // DETECTAR PARPADEO Y CLIC
+            const ear = (calcularEAR(lm, 33, 133, 159, 145) + calcularEAR(lm, 362, 263, 386, 374)) / 2;
+            if (ear < 0.22 && (Date.now() - lastBlinkTime > 1500)) {
                 lastBlinkTime = Date.now();
                 
-                // Efecto visual al parpadear
                 gazeCursor.style.backgroundColor = '#ffc107';
                 gazeCursor.style.transform = 'translate(-50%, -50%) scale(1.5)';
-                
                 setTimeout(() => {
                     gazeCursor.style.backgroundColor = 'rgba(239, 68, 68, 0.85)';
                     gazeCursor.style.transform = 'translate(-50%, -50%) scale(1)';
                 }, 300);
 
-                // EJECUTAR CLIC VIRTUAL
-                if (element) {
-                    if (element.tagName === 'INPUT') {
-                        element.focus(); // Entrar a la caja de texto
-                    } else {
-                        element.click(); // Hacer clic en el botón o enlace
-                    }
-                }
+                if (element) element.click(); 
             }
         } else {
-            statusEl.textContent = 'Buscando rostro...';
-            statusEl.style.background = '#dc3545';
+            statusEl.textContent = 'Buscando rostro...'; statusEl.style.background = '#dc3545';
             gazeCursor.style.display = 'none';
         }
     });
 
     async function startCamera() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: { width: 640, height: 480, facingMode: 'user' },
-                audio: false
-            });
-            videoElement.srcObject = stream;
-            await videoElement.play();
-
-            const camera = new Camera(videoElement, {
-                onFrame: async () => { await faceMesh.send({ image: videoElement }); },
-                width: 640, height: 480
-            });
-            camera.start();
-        } catch (err) {
-            statusEl.textContent = 'Permiso de cámara denegado';
-            statusEl.style.background = '#dc3545';
-        }
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480, facingMode: 'user' }, audio: false });
+            videoElement.srcObject = stream; await videoElement.play();
+            new Camera(videoElement, { onFrame: async () => { await faceMesh.send({ image: videoElement }); }, width: 640, height: 480 }).start();
+        } catch (err) { statusEl.textContent = 'Cámara bloqueada'; statusEl.style.background = '#dc3545'; }
     }
-
     window.addEventListener('DOMContentLoaded', startCamera);
 </script>
-
 </body>
 </html>
